@@ -1,0 +1,12 @@
+
+[Default Applications]
+text/html=google-chrome.desktop
+x-scheme-handler/http=google-chrome.desktop
+x-scheme-handler/https=google-chrome.desktop
+x-scheme-handler/about=google-chrome.desktop
+x-scheme-handler/unknown=google-chrome.desktop
+text/plain=code.desktop
+text/x-shellscript=code.desktop
+text/x-python=code.desktop
+text/x-script.python=code.desktop
+x-scheme-handler/codex=chatgpt.desktop

@@ -1,0 +1,142 @@
+/*
+ * GTK Colors - Generated with iNiR theming
+ * This file is overwritten when you change wallpaper
+ */
+
+@define-color accent_color #bec7d6;
+@define-color accent_fg_color #28313d;
+@define-color accent_bg_color #bec7d6;
+
+@define-color window_bg_color #151516;
+@define-color window_fg_color #e4e2e3;
+
+@define-color headerbar_bg_color #151516;
+@define-color headerbar_fg_color #e4e2e3;
+
+@define-color popover_bg_color #202020;
+@define-color popover_fg_color #c6c6c9;
+
+@define-color view_bg_color #151516;
+@define-color view_fg_color #e4e2e3;
+
+@define-color card_bg_color #1c1c1c;
+@define-color card_fg_color #c6c6c9;
+
+@define-color sidebar_bg_color #151516;
+@define-color sidebar_fg_color #e4e2e3;
+@define-color sidebar_border_color #151516;
+@define-color sidebar_backdrop_color #151516;
+
+headerbar {
+    background-color: #151516;
+    box-shadow: none;
+    border-bottom: none;
+}
+
+headerbar separator {
+    background-color: transparent;
+}
+
+.nautilus-window .sidebar,
+.nautilus-window sidebar,
+placessidebar,
+placessidebar list {
+    background-color: #151516;
+    color: #e4e2e3;
+    border-right: none;
+}
+
+placessidebar row {
+    background-color: transparent;
+    color: #e4e2e3;
+}
+
+placessidebar row:hover {
+    background-color: #333436;
+}
+
+placessidebar row:selected,
+placessidebar row:selected:hover {
+    background-color: #45464a;
+    color: #e4e2e3;
+}
+
+placessidebar image {
+    color: inherit;
+}
+
+.view {
+    background-color: #151516;
+}
+
+separator.sidebar {
+    background-color: transparent;
+    min-width: 0;
+}
+
+/* Generic file/list selection. xdg-desktop-portal-gtk can use GtkTreeView
+ * independently of Nautilus, so sidebar-only rules are not sufficient. */
+treeview.view:selected,
+.view:selected,
+list row:selected,
+listbox row:selected {
+    background-color: #45464a;
+    color: #e4e2e3;
+}
+
+treeview.view:selected:hover,
+.view:selected:hover,
+list row:selected:hover,
+listbox row:selected:hover {
+    background-color: #505357;
+    color: #e4e2e3;
+}
+
+/* Context menus and popovers */
+popover,
+popover.background {
+    background-color: #202020;
+    color: #c6c6c9;
+}
+
+menu,
+.context-menu,
+.popup {
+    background-color: #202020;
+    color: #c6c6c9;
+}
+
+menuitem {
+    color: #c6c6c9;
+}
+
+menuitem:hover,
+menuitem:selected {
+    background-color: #333436;
+}
+
+menuitem:active,
+menuitem:selected:active {
+    background-color: #45464a;
+    color: #e4e2e3;
+}
+
+button:hover {
+    background-color: #333436;
+}
+
+button:active {
+    background-color: #45464a;
+    color: #e4e2e3;
+}
+
+entry:focus,
+textview:focus,
+spinbutton:focus {
+    border-color: alpha(#bec7d6, 0.60);
+    box-shadow: 0 0 0 1px alpha(#bec7d6, 0.25) inset;
+}
+
+menu separator {
+    background-color: alpha(#c6c6c9, 0.12);
+}

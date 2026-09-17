@@ -1,0 +1,22 @@
+# Caches, logs, locks
+*.log
+*.lock
+*.tmp
+*.bak
+*.old
+*.swp
+*.sqlite*
+*.db
+
+# Sensitive credentials & auth
+*secret*
+*token*
+*auth*.json
+.env*
+*.key
+*.pem
+
+# Local machine state & backups
+backups/
+installed_listfile
+installed_true

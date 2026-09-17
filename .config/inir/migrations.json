@@ -1,0 +1,9 @@
+{
+  "applied": [
+    "019-config-dir-rename-compat",
+    "034-cliphist-text-watcher",
+    "040-niri-session-environment-lifecycle",
+    "042-cliphist-no-synthetic-newline"
+  ],
+  "skipped": []
+}
