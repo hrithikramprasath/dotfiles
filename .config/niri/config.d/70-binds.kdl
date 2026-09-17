@@ -238,9 +238,9 @@ binds {
     // Screenshots (Niri native — iNiR has its own region selector above)
     // ═══════════════════════════════════════════════════════════════════════
 
-    Print      { screenshot; }
-    Ctrl+Print { screenshot-screen; }
-    Alt+Print  { screenshot-window; }
+    F10      { screenshot; }
+    Ctrl+F10 { screenshot-screen; }
+    Alt+F10  { screenshot-window; }
 
     // ═══════════════════════════════════════════════════════════════════════
     // Hardware keys → iNiR IPC (with OSD feedback)

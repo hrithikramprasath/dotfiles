@@ -35,7 +35,7 @@ debug {
     honor-xdg-activation-with-invalid-serial
 }
 
-// Where native Niri screenshots land (Print key).
+// Where native Niri screenshots land (F10 key).
 // iNiR's region selector (Mod+Shift+S) uses its own path.
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 
