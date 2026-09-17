@@ -451,7 +451,7 @@
             "enable": true,
             "type": "random"
         },
-        "wallpaperPath": "/home/hrithikramprasath/Pictures/Wallpapers/wallhaven-d8v86l.jpg",
+        "wallpaperPath": "/home/hrithikramprasath/Pictures/Wallpapers/wallpaper666.png",
         "wallpapersByMonitor": [],
         "widgets": {
             "adaptColorsToWallpaperPosition": false,
@@ -670,7 +670,7 @@
                 "latinWeight": 600,
                 "letterSpacing": 2,
                 "locked": false,
-                "mirrorLayout": false,
+                "mirrorLayout": true,
                 "outlineColor": "#000000",
                 "outlineOpacity": 0,
                 "palette": {
@@ -683,7 +683,7 @@
                 "paletteMode": "adaptive",
                 "palettePreset": "adaptive",
                 "placementStrategy": "free",
-                "preset": "exhibition",
+                "preset": "custom",
                 "primaryColor": "#E7D4B2",
                 "primaryColumns": 2,
                 "primaryOpacity": 100,
@@ -740,8 +740,8 @@
                     "tertiary": "tertiary"
                 },
                 "placementStrategy": "free",
-                "pose": "reading",
-                "poseFilter": "all",
+                "pose": "sit-laptop",
+                "poseFilter": "featured",
                 "posePickerMode": "buttons",
                 "showBackground": false,
                 "showBorder": false,
@@ -884,28 +884,80 @@
                     "widgets": {
                         "clock": {
                             "placementStrategy": "free",
+                            "timeScale": 188,
                             "x": 12,
-                            "y": 101
+                            "y": 92
+                        },
+                        "imageConverter": {
+                            "placementStrategy": "free",
+                            "x": 252,
+                            "y": 444
                         },
                         "japaneseTypography": {
+                            "contentHeight": 640,
+                            "contentWidth": 394,
                             "placementStrategy": "free",
-                            "x": 1218,
-                            "y": 250
+                            "x": 1164,
+                            "y": 188
+                        },
+                        "mascot": {
+                            "contentWidth": 96,
+                            "placementStrategy": "free",
+                            "x": 108,
+                            "y": 60
+                        },
+                        "mediaControls": {
+                            "placementStrategy": "free",
+                            "x": 396,
+                            "y": 204
+                        },
+                        "newsTicker": {
+                            "placementStrategy": "free",
+                            "x": 252,
+                            "y": 444
+                        },
+                        "notes": {
+                            "placementStrategy": "free",
+                            "x": 396,
+                            "y": 84
+                        },
+                        "systemMonitor": {
+                            "placementStrategy": "free",
+                            "x": 12,
+                            "y": 768
+                        },
+                        "timers": {
+                            "placementStrategy": "free",
+                            "x": 1004,
+                            "y": 764
+                        },
+                        "todo": {
+                            "placementStrategy": "free",
+                            "x": 108,
+                            "y": 468
+                        },
+                        "uptime": {
+                            "placementStrategy": "free",
+                            "x": 252,
+                            "y": 84
                         },
                         "userCard": {
                             "placementStrategy": "free",
-                            "x": 80,
-                            "y": 420
+                            "x": 1292,
+                            "y": 60
                         },
                         "visualizer": {
+                            "contentHeight": 96,
+                            "contentWidth": 256,
                             "placementStrategy": "free",
-                            "x": 151,
-                            "y": 221
+                            "x": 132,
+                            "y": 348
                         },
                         "weather": {
                             "placementStrategy": "free",
-                            "x": 108,
-                            "y": 397
+                            "size": 80,
+                            "x": 1484,
+                            "y": 808
                         }
                     },
                     "width": 1600
