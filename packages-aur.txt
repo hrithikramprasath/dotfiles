@@ -1,4 +1,5 @@
 antigravity-cli
+brave-bin
 chatgpt-desktop
 darkly-bin
 google-chrome

@@ -29,3 +29,7 @@ spawn-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
 // ── iNiR shell ──────────────────────────────────────────────────────────────
 // iNiR is managed by the user systemd service (inir.service).
 // Do not add a compositor startup entry here or you'll get two shells.
+// >>> inir-managed-autostart >>>
+// Managed by iNiR Settings — add or remove entries via Settings › Autostart.
+spawn-at-startup "gtk-launch" "discord"
+// <<< inir-managed-autostart <<<

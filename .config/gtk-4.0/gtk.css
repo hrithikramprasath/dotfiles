@@ -9,57 +9,57 @@
 /* CSS custom properties for libadwaita color overrides */
 :root {
     /* Accent */
-    --accent-bg-color: #bec7d6;
-    --accent-fg-color: #28313d;
-    --accent-color: #bec7d6;
+    --accent-bg-color: #f9b6ac;
+    --accent-fg-color: #61332d;
+    --accent-color: #f9b6ac;
 
     /* Window */
-    --window-bg-color: #151516;
-    --window-fg-color: #e4e2e3;
+    --window-bg-color: #150f0d;
+    --window-fg-color: #f9e0dc;
 
     /* View */
-    --view-bg-color: #151516;
-    --view-fg-color: #e4e2e3;
+    --view-bg-color: #150f0d;
+    --view-fg-color: #f9e0dc;
 
     /* Headerbar */
-    --headerbar-bg-color: #151516;
-    --headerbar-fg-color: #e4e2e3;
-    --headerbar-backdrop-color: #151516;
+    --headerbar-bg-color: #150f0d;
+    --headerbar-fg-color: #f9e0dc;
+    --headerbar-backdrop-color: #150f0d;
     --headerbar-border-color: transparent;
     --headerbar-shade-color: transparent;
     --headerbar-darker-shade-color: transparent;
 
     /* Sidebar */
-    --sidebar-bg-color: #151516;
-    --sidebar-fg-color: #e4e2e3;
-    --sidebar-backdrop-color: #151516;
+    --sidebar-bg-color: #150f0d;
+    --sidebar-fg-color: #f9e0dc;
+    --sidebar-backdrop-color: #150f0d;
     --sidebar-border-color: transparent;
     --sidebar-shade-color: rgba(0, 0, 0, 0.25);
 
     /* Secondary Sidebar (Nautilus places) */
-    --secondary-sidebar-bg-color: #151516;
-    --secondary-sidebar-fg-color: #e4e2e3;
-    --secondary-sidebar-backdrop-color: #151516;
+    --secondary-sidebar-bg-color: #150f0d;
+    --secondary-sidebar-fg-color: #f9e0dc;
+    --secondary-sidebar-backdrop-color: #150f0d;
     --secondary-sidebar-border-color: transparent;
     --secondary-sidebar-shade-color: rgba(0, 0, 0, 0.25);
 
     /* Popover */
-    --popover-bg-color: #202020;
-    --popover-fg-color: #c6c6c9;
+    --popover-bg-color: #221715;
+    --popover-fg-color: #bca6a3;
     --popover-shade-color: rgba(0, 0, 0, 0.25);
 
     /* Dialog */
-    --dialog-bg-color: #2a2a2b;
-    --dialog-fg-color: #c6c6c9;
+    --dialog-bg-color: #291d1b;
+    --dialog-fg-color: #bca6a3;
 
     /* Card */
-    --card-bg-color: #1c1c1c;
-    --card-fg-color: #c6c6c9;
+    --card-bg-color: #1a1110;
+    --card-fg-color: #bca6a3;
     --card-shade-color: rgba(0, 0, 0, 0.15);
 
     /* Thumbnail */
-    --thumbnail-bg-color: #353535;
-    --thumbnail-fg-color: #c6c6c9;
+    --thumbnail-bg-color: #302220;
+    --thumbnail-fg-color: #bca6a3;
 
     /* Misc */
     --shade-color: rgba(0, 0, 0, 0.25);
@@ -75,8 +75,8 @@ gridview child:selected,
 listbox row:selected,
 row:selected,
 .view:selected {
-    background-color: #45464a;
-    color: #e4e2e3;
+    background-color: #4e3935;
+    color: #f9e0dc;
 }
 
 columnview row:selected:hover,
@@ -85,8 +85,8 @@ gridview child:selected:hover,
 listbox row:selected:hover,
 row:selected:hover,
 .view:selected:hover {
-    background-color: #505357;
-    color: #e4e2e3;
+    background-color: #5f4541;
+    color: #f9e0dc;
 }
 
 /* Tooltip styling - children need transparent bg */
@@ -95,6 +95,6 @@ tooltip * {
 }
 
 tooltip.background {
-    background-color: #202020;
-    color: #c6c6c9;
+    background-color: #221715;
+    color: #bca6a3;
 }

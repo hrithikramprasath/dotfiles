@@ -3,32 +3,32 @@
  * This file is overwritten when you change wallpaper
  */
 
-@define-color accent_color #bec7d6;
-@define-color accent_fg_color #28313d;
-@define-color accent_bg_color #bec7d6;
+@define-color accent_color #f9b6ac;
+@define-color accent_fg_color #61332d;
+@define-color accent_bg_color #f9b6ac;
 
-@define-color window_bg_color #151516;
-@define-color window_fg_color #e4e2e3;
+@define-color window_bg_color #150f0d;
+@define-color window_fg_color #f9e0dc;
 
-@define-color headerbar_bg_color #151516;
-@define-color headerbar_fg_color #e4e2e3;
+@define-color headerbar_bg_color #150f0d;
+@define-color headerbar_fg_color #f9e0dc;
 
-@define-color popover_bg_color #202020;
-@define-color popover_fg_color #c6c6c9;
+@define-color popover_bg_color #221715;
+@define-color popover_fg_color #bca6a3;
 
-@define-color view_bg_color #151516;
-@define-color view_fg_color #e4e2e3;
+@define-color view_bg_color #150f0d;
+@define-color view_fg_color #f9e0dc;
 
-@define-color card_bg_color #1c1c1c;
-@define-color card_fg_color #c6c6c9;
+@define-color card_bg_color #1a1110;
+@define-color card_fg_color #bca6a3;
 
-@define-color sidebar_bg_color #151516;
-@define-color sidebar_fg_color #e4e2e3;
-@define-color sidebar_border_color #151516;
-@define-color sidebar_backdrop_color #151516;
+@define-color sidebar_bg_color #150f0d;
+@define-color sidebar_fg_color #f9e0dc;
+@define-color sidebar_border_color #150f0d;
+@define-color sidebar_backdrop_color #150f0d;
 
 headerbar {
-    background-color: #151516;
+    background-color: #150f0d;
     box-shadow: none;
     border-bottom: none;
 }
@@ -41,24 +41,24 @@ headerbar separator {
 .nautilus-window sidebar,
 placessidebar,
 placessidebar list {
-    background-color: #151516;
-    color: #e4e2e3;
+    background-color: #150f0d;
+    color: #f9e0dc;
     border-right: none;
 }
 
 placessidebar row {
     background-color: transparent;
-    color: #e4e2e3;
+    color: #f9e0dc;
 }
 
 placessidebar row:hover {
-    background-color: #333436;
+    background-color: #3C2A27;
 }
 
 placessidebar row:selected,
 placessidebar row:selected:hover {
-    background-color: #45464a;
-    color: #e4e2e3;
+    background-color: #4e3935;
+    color: #f9e0dc;
 }
 
 placessidebar image {
@@ -66,7 +66,7 @@ placessidebar image {
 }
 
 .view {
-    background-color: #151516;
+    background-color: #150f0d;
 }
 
 separator.sidebar {
@@ -80,63 +80,63 @@ treeview.view:selected,
 .view:selected,
 list row:selected,
 listbox row:selected {
-    background-color: #45464a;
-    color: #e4e2e3;
+    background-color: #4e3935;
+    color: #f9e0dc;
 }
 
 treeview.view:selected:hover,
 .view:selected:hover,
 list row:selected:hover,
 listbox row:selected:hover {
-    background-color: #505357;
-    color: #e4e2e3;
+    background-color: #5f4541;
+    color: #f9e0dc;
 }
 
 /* Context menus and popovers */
 popover,
 popover.background {
-    background-color: #202020;
-    color: #c6c6c9;
+    background-color: #221715;
+    color: #bca6a3;
 }
 
 menu,
 .context-menu,
 .popup {
-    background-color: #202020;
-    color: #c6c6c9;
+    background-color: #221715;
+    color: #bca6a3;
 }
 
 menuitem {
-    color: #c6c6c9;
+    color: #bca6a3;
 }
 
 menuitem:hover,
 menuitem:selected {
-    background-color: #333436;
+    background-color: #3C2A27;
 }
 
 menuitem:active,
 menuitem:selected:active {
-    background-color: #45464a;
-    color: #e4e2e3;
+    background-color: #4e3935;
+    color: #f9e0dc;
 }
 
 button:hover {
-    background-color: #333436;
+    background-color: #3C2A27;
 }
 
 button:active {
-    background-color: #45464a;
-    color: #e4e2e3;
+    background-color: #4e3935;
+    color: #f9e0dc;
 }
 
 entry:focus,
 textview:focus,
 spinbutton:focus {
-    border-color: alpha(#bec7d6, 0.60);
-    box-shadow: 0 0 0 1px alpha(#bec7d6, 0.25) inset;
+    border-color: alpha(#f9b6ac, 0.60);
+    box-shadow: 0 0 0 1px alpha(#f9b6ac, 0.25) inset;
 }
 
 menu separator {
-    background-color: alpha(#c6c6c9, 0.12);
+    background-color: alpha(#bca6a3, 0.12);
 }
