@@ -24,33 +24,50 @@ Personal configurations for Arch Linux with **Niri** (Wayland scrollable tiling 
 │   ├── mimeapps.list     # Default application associations
 │   ├── chrome-flags.conf # Wayland & ozone flags for Google Chrome
 │   └── code-flags.conf   # Wayland flags for VS Code
+├── packages-repo.txt     # Explicitly installed official Arch packages
+├── packages-aur.txt      # Explicitly installed AUR packages
 ├── .gitignore
-├── install.sh            # Deployment / symlinking script
+├── install.sh            # Deployment / restoration script
 └── README.md
 ```
 
-## Key Applications
+## Key Applications & Stack
 
-* **Compositor**: Niri
-* **Shell**: iNiR (Quickshell)
+* **Compositor**: Niri (Scrollable tiling Wayland compositor)
+* **Desktop Shell**: iNiR (Quickshell / Qt6 QML interface)
 * **Terminal**: Kitty
 * **Shell Environment**: Fish + Starship
 * **Browser**: Google Chrome
 * **Media Player**: mpv + mpv-mpris
 * **Screen Recorder**: wf-recorder
-* **Snipping Tool**: iNiR Region Tool (grim + slurp + swappy)
+* **Snipping & OCR**: iNiR Region Tool (grim + slurp + swappy)
 * **Color Picker**: hyprpicker
 * **App Launcher**: iNiR Overview (`Mod+Space`)
 
-## Installation
+## Installation & System Recovery
 
-To deploy these dotfiles on a fresh setup:
+### Option 1: Quick Config Symlink (Existing System)
+If packages and iNiR are already installed and you just want to apply or update configurations:
 
 ```bash
 git clone https://github.com/hrithikramprasath/dotfiles.git ~/dotfiles
 cd ~/dotfiles
 ./install.sh
 ```
+
+### Option 2: Full System Recovery (Fresh PC Reset)
+If you just reinstalled Arch Linux and want to recreate your exact setup:
+
+```bash
+git clone https://github.com/hrithikramprasath/dotfiles.git ~/dotfiles
+cd ~/dotfiles
+./install.sh --full
+```
+This will automatically:
+1. Reinstall all official Arch packages from `packages-repo.txt`
+2. Bootstrap `yay` and install all AUR packages from `packages-aur.txt`
+3. Clone and configure the `iNiR` desktop shell
+4. Symlink all `.config/` directories into place
 
 ## License
 
