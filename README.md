@@ -47,7 +47,13 @@ Personal configurations for Arch Linux with **Niri** (Wayland scrollable tiling 
 To deploy these dotfiles on a fresh setup:
 
 ```bash
-git clone https://github.com/<username>/dotfiles.git ~/dotfiles
+git clone https://github.com/hrithikramprasath/dotfiles.git ~/dotfiles
 cd ~/dotfiles
 ./install.sh
 ```
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+Copyright (c) 2026 Hrithik Ram Prasath. Anyone using, copying, or distributing these configurations must retain the original copyright and permission notice.
+
