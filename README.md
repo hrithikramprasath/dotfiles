@@ -7,12 +7,10 @@ Personal configurations for Arch Linux with **Niri** (Wayland scrollable tiling 
 | Desktop & Right Control Panel | Widgets Panel & Typography |
 | :---: | :---: |
 | ![Right Sidebar](assets/screenshots/01-desktop-right-sidebar.png) | ![Widgets Panel](assets/screenshots/02-left-widgets-panel.png) |
-| *Right sidebar: System controls, notifications & calendar* | *Left sidebar: Hardware meters, crypto, notes & world clock* |
 
 | Expanded Pill Status Bar | Hardware Monitor Dropdown |
 | :---: | :---: |
 | ![Expanded Pill Bar](assets/screenshots/03-expanded-pill-bar.png) | ![System Monitor](assets/screenshots/04-system-monitor-dropdown.png) |
-| *Top pill bar: Workspaces, clock, weather & trays* | *Hardware monitor: Live CPU, GPU, RAM & VRAM gauges* |
 
 ## Components & Structure
 
