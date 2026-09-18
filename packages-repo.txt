@@ -39,6 +39,7 @@ gum
 hyprpicker
 imagemagick
 inotify-tools
+intel-ucode
 iw
 jq
 kconfig
