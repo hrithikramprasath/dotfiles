@@ -36,8 +36,9 @@ Personal configurations for Arch Linux with **Niri** (Wayland scrollable tiling 
 │   └── code-flags.conf   # Wayland flags for VS Code
 ├── .chezmoiscripts/      # Automated lifecycle hooks
 │   └── run_onchange_before_install-packages.sh.tmpl  # Auto package sync on change
-├── packages-repo.txt     # Explicitly installed official Arch packages
-├── packages-aur.txt      # Explicitly installed AUR packages
+├── packages-repo.txt     # Core OS, Niri & iNiR official dependencies
+├── packages-aur.txt      # Core UI, font, theme & shell AUR packages
+├── packages-apps.txt     # Optional user applications (Brave, Discord, Spotify, Steam, etc.)
 ├── .chezmoiignore        # Files excluded from target deployment
 ├── .gitignore
 ├── install.sh            # Universal bootstrap & synchronization wrapper
@@ -85,6 +86,12 @@ cd ~/dotfiles
 * `./install.sh --full`: Full system sync (installs packages if manifests changed + applies configs).
 * `./install.sh --diff`: Preview line-by-line differences between repo and local files.
 * `./install.sh --verify`: Check for configuration drift (exits 0 if clean).
+
+> [!NOTE]
+> **Minimal & Bloat-Free by Design**: The automated installation provisions **only** the required OS components, Niri compositor, iNiR shell widgets, fonts, themes, and system tools needed to run this exact desktop environment seamlessly. Personal user applications (such as browsers, Discord, Spotify, Steam, and VS Code) are decoupled into [`packages-apps.txt`](packages-apps.txt). If you wish to install your full app suite on a machine, run:
+> ```bash
+> yay -S --needed - < packages-apps.txt
+> ```
 
 ## Daily Workflow with Chezmoi
 

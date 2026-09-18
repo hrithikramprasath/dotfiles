@@ -3,6 +3,7 @@ LICENSE
 install.sh
 packages-repo.txt
 packages-aur.txt
+packages-apps.txt
 assets
 assets/**
 .gitignore
