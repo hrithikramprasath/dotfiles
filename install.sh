@@ -43,7 +43,9 @@ install_packages() {
     if [ ! -d "$HOME/inir" ]; then
         echo "Cloning iNiR repository..."
         git clone https://github.com/snowarch/inir.git "$HOME/inir"
-        if [ -f "$HOME/inir/setup.sh" ]; then
+        if [ -f "$HOME/inir/setup" ]; then
+            bash "$HOME/inir/setup" install --non-interactive || true
+        elif [ -f "$HOME/inir/setup.sh" ]; then
             bash "$HOME/inir/setup.sh" install --non-interactive || true
         fi
     fi
