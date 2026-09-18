@@ -333,14 +333,14 @@
     },
     "apps": {
         "bluetooth": "blueman-manager",
-        "browser": "google-chrome-stable",
+        "browser": "xdg-open",
         "discord": "discord",
         "manageUser": "kcmshell6 kcm_users",
         "network": "nm-connection-editor",
         "networkEthernet": "nm-connection-editor",
         "taskManager": "missioncenter",
         "terminal": "kitty",
-        "update": "kitty -e arch-update",
+        "update": "kitty -e yay",
         "volumeMixer": "pavucontrol"
     },
     "audio": {
@@ -451,7 +451,7 @@
             "enable": true,
             "type": "random"
         },
-        "wallpaperPath": "/home/hrithikramprasath/Pictures/Wallpapers/wallpaper666.png",
+        "wallpaperPath": "{{ .chezmoi.homeDir }}/Pictures/Wallpapers/wallpaper666.png",
         "wallpapersByMonitor": [],
         "widgets": {
             "adaptColorsToWallpaperPosition": false,

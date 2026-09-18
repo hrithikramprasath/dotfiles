@@ -1,6 +1,5 @@
 darkly-bin
 gowall-bin
-inir-deps
 otf-space-grotesk
 qt6-avif-image-plugin
 ttf-gabarito-git
@@ -10,4 +9,3 @@ ttf-roboto-flex
 ttf-rubik-vf
 ttf-twemoji
 whitesur-icon-theme
-yay

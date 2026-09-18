@@ -1,3 +1,3 @@
-if not contains -- "/home/hrithikramprasath/.local/bin" $PATH
-    set -gx PATH "/home/hrithikramprasath/.local/bin" $PATH
+if not contains -- "$HOME/.local/bin" $PATH
+    set -gx PATH "$HOME/.local/bin" $PATH
 end

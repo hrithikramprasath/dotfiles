@@ -25,7 +25,7 @@ fi
 # 3. AUR packages
 if command -v yay >/dev/null 2>&1; then
     echo "Installing AUR packages..."
-    yay -S --needed --noconfirm - < "{{ .chezmoi.sourceDir }}/packages-aur.txt" || true
+    yay -S --needed --noconfirm $(grep -v '^[[:space:]]*#' "{{ .chezmoi.sourceDir }}/packages-aur.txt") || true
 fi
 
 # 4. iNiR shell repository
@@ -33,9 +33,9 @@ if [ ! -d "$HOME/inir" ]; then
     echo "Cloning and configuring iNiR shell..."
     git clone https://github.com/snowarch/inir.git "$HOME/inir"
     if [ -f "$HOME/inir/setup" ]; then
-        bash "$HOME/inir/setup" install --non-interactive || true
+        bash "$HOME/inir/setup" install -y -q --skip-backup || true
     elif [ -f "$HOME/inir/setup.sh" ]; then
-        bash "$HOME/inir/setup.sh" install --non-interactive || true
+        bash "$HOME/inir/setup.sh" install -y -q --skip-backup || true
     fi
 fi
 

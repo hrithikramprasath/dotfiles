@@ -7,3 +7,4 @@ packages-apps.txt
 assets
 assets/**
 .gitignore
+.config/mimeapps.list

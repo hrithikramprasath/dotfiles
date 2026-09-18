@@ -31,7 +31,7 @@ Personal configurations for Arch Linux with **Niri** (Wayland scrollable tiling 
 │   ├── gtk-4.0/          # GTK4 theme, font, icon settings
 │   ├── darklyrc          # Darkly Qt widget style options
 │   ├── fontconfig/       # Font configurations
-│   ├── mimeapps.list     # Default application associations
+│   ├── xdg-desktop-portal/ # Wayland portal routing for Niri
 │   ├── chrome-flags.conf # Wayland & ozone flags for Google Chrome
 │   └── code-flags.conf   # Wayland flags for VS Code
 ├── .chezmoiscripts/      # Automated lifecycle hooks
@@ -51,7 +51,7 @@ Personal configurations for Arch Linux with **Niri** (Wayland scrollable tiling 
 * **Desktop Shell**: iNiR (Quickshell / Qt6 QML interface)
 * **Terminal**: Kitty
 * **Shell Environment**: Fish + Starship
-* **Browser**: Brave (`brave-bin`) / Google Chrome
+* **Browser**: User choice (Brave, Chrome, Firefox, etc.) via XDG / `Super+W`
 * **Media Player**: mpv + mpv-mpris
 * **Screen Recorder**: wf-recorder & ffmpeg
 * **Snipping & OCR**: iNiR Region Tool (grim + slurp + swappy + tesseract)
