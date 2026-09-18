@@ -1,0 +1,14 @@
+# Chezmoi configuration template
+# Evaluated automatically on {{ .chezmoi.hostname }}
+
+sourceDir = {{ .chezmoi.sourceDir | quote }}
+
+[edit]
+    apply = true
+
+[diff]
+    pager = "cat"
+
+[git]
+    autoCommit = false
+    autoPush = false

@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Dotfiles automated package synchronizer managed by Chezmoi
+# packages-repo.txt hash: {{ include "packages-repo.txt" | sha256sum }}
+# packages-aur.txt hash: {{ include "packages-aur.txt" | sha256sum }}
+
+set -euo pipefail
+
+echo "=== Chezmoi: Checking and installing package manifests ==="
+
+# 1. Official repository packages
+if command -v pacman >/dev/null 2>&1; then
+    echo "Installing official repository packages..."
+    sudo pacman -S --needed --noconfirm - < "{{ .chezmoi.sourceDir }}/packages-repo.txt" || true
+fi
+
+# 2. AUR helper (yay)
+if ! command -v yay >/dev/null 2>&1; then
+    echo "Installing yay AUR helper..."
+    tmp_dir=$(mktemp -d)
+    git clone https://aur.archlinux.org/yay.git "$tmp_dir/yay"
+    (cd "$tmp_dir/yay" && makepkg -si --noconfirm)
+    rm -rf "$tmp_dir"
+fi
+
+# 3. AUR packages
+if command -v yay >/dev/null 2>&1; then
+    echo "Installing AUR packages..."
+    yay -S --needed --noconfirm - < "{{ .chezmoi.sourceDir }}/packages-aur.txt" || true
+fi
+
+# 4. iNiR shell repository
+if [ ! -d "$HOME/inir" ]; then
+    echo "Cloning and configuring iNiR shell..."
+    git clone https://github.com/snowarch/inir.git "$HOME/inir"
+    if [ -f "$HOME/inir/setup" ]; then
+        bash "$HOME/inir/setup" install --non-interactive || true
+    elif [ -f "$HOME/inir/setup.sh" ]; then
+        bash "$HOME/inir/setup.sh" install --non-interactive || true
+    fi
+fi
+
+echo "=== Chezmoi: Package synchronizer completed successfully ==="

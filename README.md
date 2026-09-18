@@ -1,6 +1,6 @@
 # Dotfiles
 
-Personal configurations for Arch Linux with **Niri** (Wayland scrollable tiling compositor) and **iNiR** (Quickshell desktop shell).
+Personal configurations for Arch Linux with **Niri** (Wayland scrollable tiling compositor) and **iNiR** (Quickshell desktop shell), managed with **[Chezmoi](https://www.chezmoi.io/)**.
 
 ## 📸 Desktop Showcase
 
@@ -12,11 +12,11 @@ Personal configurations for Arch Linux with **Niri** (Wayland scrollable tiling 
 | :---: | :---: |
 | ![Expanded Pill Bar](assets/screenshots/03-expanded-pill-bar.png) | ![System Monitor](assets/screenshots/04-system-monitor-dropdown.png) |
 
-## Components & Structure
+## Repository Architecture
 
 ```
 .
-├── .config/
+├── dot_config/           # Managed configuration directory (~/.config)
 │   ├── niri/             # Niri compositor config, modular rules & keybinds
 │   ├── inir/             # iNiR Quickshell shell preferences, themes & actions
 │   ├── kitty/            # Kitty terminal configuration & themes
@@ -34,10 +34,13 @@ Personal configurations for Arch Linux with **Niri** (Wayland scrollable tiling 
 │   ├── mimeapps.list     # Default application associations
 │   ├── chrome-flags.conf # Wayland & ozone flags for Google Chrome
 │   └── code-flags.conf   # Wayland flags for VS Code
+├── .chezmoiscripts/      # Automated lifecycle hooks
+│   └── run_onchange_before_install-packages.sh.tmpl  # Auto package sync on change
 ├── packages-repo.txt     # Explicitly installed official Arch packages
 ├── packages-aur.txt      # Explicitly installed AUR packages
+├── .chezmoiignore        # Files excluded from target deployment
 ├── .gitignore
-├── install.sh            # Deployment / restoration script
+├── install.sh            # Universal bootstrap & synchronization wrapper
 └── README.md
 ```
 
@@ -47,40 +50,62 @@ Personal configurations for Arch Linux with **Niri** (Wayland scrollable tiling 
 * **Desktop Shell**: iNiR (Quickshell / Qt6 QML interface)
 * **Terminal**: Kitty
 * **Shell Environment**: Fish + Starship
-* **Browser**: Google Chrome
+* **Browser**: Brave (`brave-bin`) / Google Chrome
 * **Media Player**: mpv + mpv-mpris
-* **Screen Recorder**: wf-recorder
-* **Snipping & OCR**: iNiR Region Tool (grim + slurp + swappy)
+* **Screen Recorder**: wf-recorder & ffmpeg
+* **Snipping & OCR**: iNiR Region Tool (grim + slurp + swappy + tesseract)
 * **Color Picker**: hyprpicker
 * **App Launcher**: iNiR Overview (`Mod+Space`)
 
 ## Installation & System Recovery
 
-### Option 1: Quick Config Symlink (Existing System)
-If packages and iNiR are already installed and you just want to apply or update configurations:
+### Option 1: One-Line Remote Bootstrap (Any Fresh Machine)
+On a brand new Arch installation, run:
 
 ```bash
-git clone https://github.com/hrithikramprasath/dotfiles.git ~/dotfiles
-cd ~/dotfiles
-./install.sh
+sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply hrithikramprasath
 ```
+This single command will:
+1. Download and install `chezmoi`
+2. Clone this repository to `~/.local/share/chezmoi`
+3. Execute package installation hooks for official and AUR packages
+4. Deploy and validate all `.config` directories
 
-### Option 2: Full System Recovery (Fresh PC Reset)
-If you just reinstalled Arch Linux and want to recreate your exact setup:
+### Option 2: Clone & Local Script
+If you prefer running via git clone:
 
 ```bash
 git clone https://github.com/hrithikramprasath/dotfiles.git ~/dotfiles
 cd ~/dotfiles
 ./install.sh --full
 ```
-This will automatically:
-1. Reinstall all official Arch packages from `packages-repo.txt`
-2. Bootstrap `yay` and install all AUR packages from `packages-aur.txt`
-3. Clone and configure the `iNiR` desktop shell
-4. Symlink all `.config/` directories into place
+
+### Options for `./install.sh`:
+* `./install.sh` / `./install.sh --configs-only`: Apply configurations only (instant).
+* `./install.sh --full`: Full system sync (installs packages if manifests changed + applies configs).
+* `./install.sh --diff`: Preview line-by-line differences between repo and local files.
+* `./install.sh --verify`: Check for configuration drift (exits 0 if clean).
+
+## Daily Workflow with Chezmoi
+
+```bash
+# Edit any configuration safely (auto-applies when editor closes)
+chezmoi edit ~/.config/niri/config.kdl
+
+# Check differences between your repository and active files
+chezmoi diff
+
+# Apply changes from repository to active system
+chezmoi apply
+
+# Check for unmanaged drift
+chezmoi verify
+
+# Enter repository directory directly
+chezmoi cd
+```
 
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
 Copyright (c) 2026 Hrithik Ram Prasath. Anyone using, copying, or distributing these configurations must retain the original copyright and permission notice.
-

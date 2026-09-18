@@ -1,0 +1,8 @@
+README.md
+LICENSE
+install.sh
+packages-repo.txt
+packages-aur.txt
+assets
+assets/**
+.gitignore
