@@ -79,3 +79,8 @@ claims were not used as evidence for this report.
 
 - [Qt AbstractButton toggled signal](https://doc.qt.io/qt-6/qml-qtquick-controls-abstractbutton.html#toggled-signal) fires on interactive changes.
 - [Quickshell FileView](https://quickshell.org/docs/v0.3.1/types/Quickshell.Io/FileView/) provides a successful-load signal for reload completion.
+
+## Repository refresh
+
+See the [20 September review](review-2026-09-20.md) for the public documentation
+refresh, updated application flags, provenance notes and reproducible validator.

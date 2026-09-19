@@ -32,8 +32,10 @@ ensure_chezmoi() {
     fi
 
     if [ ! -f "$HOME/.config/chezmoi/chezmoi.toml" ]; then
+        local source_literal
+        source_literal=$(chezmoi execute-template -S "$DOTFILES_DIR" '{{ .chezmoi.sourceDir | toJson }}')
         cat << EOF > "$HOME/.config/chezmoi/chezmoi.toml"
-sourceDir = "$DOTFILES_DIR"
+sourceDir = $source_literal
 
 [edit]
     apply = true

@@ -1,0 +1,23 @@
+name: Validate dotfiles
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-checks:
+    runs-on: ubuntu-latest
+    container: archlinux:base
+    timeout-minutes: 15
+    steps:
+      - name: Install validation tools
+        run: pacman -Syu --needed --noconfirm git python chezmoi jq nodejs fish niri qt6-declarative glslang
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Validate source and isolated restore
+        run: python scripts/validate.py
+      - name: Run behavior regressions
+        run: python -m unittest discover -s tests -v

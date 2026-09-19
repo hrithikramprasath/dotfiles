@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="title desc">
+<title id="title">How the restore fits together</title><desc id="desc">Inspect the source, install dependencies and the pinned iNiR runtime, overlay managed configuration, then verify. Existing iNiR checkouts are preserved.</desc>
+<rect width="1200" height="300" rx="20" fill="#14251e"/>
+<g font-family="Inter, DejaVu Sans, sans-serif">
+<text x="36" y="48" fill="#afceba" font-size="14" letter-spacing="2">RESTORE FLOW</text>
+<g fill="#233d30" stroke="#45664f">
+<rect x="36" y="80" width="250" height="132" rx="14"/><rect x="328" y="80" width="250" height="132" rx="14"/><rect x="620" y="80" width="250" height="132" rx="14"/><rect x="912" y="80" width="250" height="132" rx="14"/>
+</g>
+<g fill="#9dc8ab" font-size="22"><text x="295" y="154">→</text><text x="587" y="154">→</text><text x="879" y="154">→</text></g>
+<g fill="#a6d6bd" font-size="13"><text x="57" y="107">01 / SOURCE</text><text x="349" y="107">02 / RUNTIME</text><text x="641" y="107">03 / CONFIGURATION</text><text x="933" y="107">04 / VERIFICATION</text></g>
+<g fill="#eceddf" font-size="22" font-weight="600"><text x="57" y="145">Review</text><text x="349" y="145">Install</text><text x="641" y="145">Apply</text><text x="933" y="145">Check</text></g>
+<g fill="#a0b7a6" font-size="14"><text x="57" y="178">Manifests + preferences</text><text x="349" y="178">Packages + pinned iNiR</text><text x="641" y="178">Home files + QML overlays</text><text x="933" y="178">Drift + runtime health</text></g>
+<text x="36" y="258" fill="#94aa9b" font-size="14">chezmoi owns the configuration. The iNiR installer owns runtime files, services and migration state.</text>
+</g></svg>

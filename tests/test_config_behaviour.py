@@ -5,6 +5,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import tomllib
 import unittest
 
 SOURCE = Path(__file__).resolve().parents[1]
@@ -32,6 +33,25 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(len(lines), 2)
         self.assertEqual(lines[0].split(':').count(str(self.home/'.local/bin')), 1)
         self.assertEqual(lines[1], str(self.home/'.local/state/quickshell/.venv'))
+
+    def test_bootstrap_quotes_source_directory_in_toml(self):
+        source = self.home / 'repo "quoted" \\ spaced'
+        source.mkdir()
+        shutil.copy2(SOURCE/'install.sh', source/'install.sh')
+        bindir = self.home/'bin'; bindir.mkdir()
+        real_chezmoi = shutil.which('chezmoi')
+        stub = bindir/'chezmoi'
+        stub.write_text('#!/usr/bin/python3\nimport os,sys\n'
+                        'if sys.argv[1] == "execute-template":\n'
+                        f'    os.execv({real_chezmoi!r}, [{real_chezmoi!r}, *sys.argv[1:]])\n')
+        stub.chmod(0o755)
+        runtime = self.home/'.config/quickshell/inir'; runtime.mkdir(parents=True)
+        (runtime/'shell.qml').touch()
+        subprocess.run(['bash', str(source/'install.sh')],
+                       env=dict(self.env, PATH=str(bindir)+':/usr/bin:/bin'),
+                       check=True, capture_output=True, text=True)
+        config = tomllib.loads((self.home/'.config/chezmoi/chezmoi.toml').read_text())
+        self.assertEqual(config['sourceDir'], str(source))
 
     def test_restore_preserves_private_modes(self):
         source = self.home/'source'

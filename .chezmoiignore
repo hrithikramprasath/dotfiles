@@ -23,3 +23,10 @@ docs/**
 
 # Keep the source directory in git without deploying its placeholder.
 .local/.keep
+
+# Repository automation and provenance are not home-directory configuration.
+.github
+.github/**
+LICENSES
+LICENSES/**
+THIRD_PARTY.md

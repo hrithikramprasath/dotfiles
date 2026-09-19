@@ -1,151 +1,111 @@
-# Dotfiles
+<p align="center">
+  <img src="assets/overview.svg" alt="Dotfiles: an Arch Linux desktop built with Niri, iNiR and chezmoi" width="100%">
+</p>
 
-Personal configurations for Arch Linux with **Niri** (Wayland scrollable tiling compositor) and **iNiR** (Quickshell desktop shell), managed with **[Chezmoi](https://www.chezmoi.io/)**.
+# Arch / Niri dotfiles
 
-## 📸 Desktop Showcase
+A personal Wayland desktop with scrolling workspaces, floating controls, and
+wallpaper-derived colors across the shell, terminal and GTK/Qt apps. Managed with
+[chezmoi](https://www.chezmoi.io/), built around [Niri](https://github.com/niri-wm/niri)
+and [iNiR](https://github.com/snowarch/inir).
 
-| Desktop & Right Control Panel | Widgets Panel & Typography |
-| :---: | :---: |
-| ![Right Sidebar](assets/screenshots/01-desktop-right-sidebar.png) | ![Widgets Panel](assets/screenshots/02-left-widgets-panel.png) |
+**[Install](docs/installation.md) · [Maintain](docs/maintenance.md) ·
+[Review & compatibility](docs/review-2026-09-20.md) · [Attribution](THIRD_PARTY.md)**
 
-| Expanded Pill Status Bar | Hardware Monitor Dropdown |
-| :---: | :---: |
-| ![Expanded Pill Bar](assets/screenshots/03-expanded-pill-bar.png) | ![System Monitor](assets/screenshots/04-system-monitor-dropdown.png) |
+This is a personal restore recipe for an existing Arch Linux installation.
+Review the package lists and preferences before applying it to another machine.
+The repository contains selected iNiR source overlays, not a complete shell.
 
-## Repository Architecture
+## A closer look
 
-```
-.
-├── dot_config/           # Managed configuration directory (~/.config)
-│   ├── niri/             # Niri compositor config, modular rules & keybinds
-│   ├── inir/             # iNiR Quickshell shell preferences, themes & actions
-│   ├── kitty/            # Kitty terminal configuration & themes
-│   ├── fish/             # Fish shell config, aliases & environment
-│   ├── starship.toml     # Starship prompt configuration
-│   ├── fastfetch/        # Fastfetch system info styling
-│   ├── cava/             # Cava audio visualizer
-│   ├── matugen/          # Material You dynamic wallpaper theming
-│   ├── Kvantum/          # Kvantum Qt style config
-│   ├── qt6ct/            # Qt6 settings & styling
-│   ├── gtk-3.0/          # GTK3 theme, font, icon settings
-│   ├── gtk-4.0/          # GTK4 theme, font, icon settings
-│   ├── darklyrc          # Darkly Qt widget style options
-│   ├── fontconfig/       # Font configurations
-│   ├── xdg-desktop-portal/ # Wayland portal routing for Niri
-│   ├── chrome-flags.conf # Wayland & ozone flags for Google Chrome
-│   └── code-flags.conf   # Wayland flags for VS Code
-├── .chezmoiscripts/      # Automated lifecycle hooks
-│   └── run_onchange_before_install-packages.sh.tmpl  # Auto package sync on change
-├── packages-repo.txt     # Core OS, Niri & iNiR official dependencies
-├── packages-aur.txt      # Core UI, font, theme & shell AUR packages
-├── packages-apps.txt     # Optional user applications (Brave, Discord, Spotify, Steam, etc.)
-├── .chezmoiignore        # Files excluded from target deployment
-├── .gitignore
-├── install.sh            # Universal bootstrap & synchronization wrapper
-└── README.md
-```
+| Wallpaper-derived palettes | Glass and rendering controls |
+| --- | --- |
+| ![iNiR Themes settings with the current palette and selectable color themes](assets/screenshots/themes.png) | ![iNiR Effects settings showing the blur backend and compositor blur control](assets/screenshots/effects.png) |
 
-## Key Applications & Stack
+Captured from the running configuration on **20 September 2026**. These are
+focused panel captures; account headers, app windows and desktop activity are
+outside the capture area. The opening vector is an illustration, not a screenshot.
 
-* **Compositor**: Niri (Scrollable tiling Wayland compositor)
-* **Desktop Shell**: iNiR (Quickshell / Qt6 QML interface)
-* **Terminal**: Kitty
-* **Shell Environment**: Fish + Starship
-* **Browser**: User choice (Brave, Chrome, Firefox, etc.) via XDG / `Super+W`
-* **Media Player**: mpv + mpv-mpris
-* **Screen Recorder**: wf-recorder & ffmpeg
-* **Snipping & OCR**: iNiR Region Tool (grim + slurp + swappy + tesseract)
-* **Color Picker**: hyprpicker
-* **App Launcher**: iNiR Overview (`Mod+Space`)
+## The stack
 
-## Installation & System Recovery
+| Layer | Configuration |
+| --- | --- |
+| Desktop | Niri + Quickshell / iNiR; modular compositor rules and custom QML overlays |
+| Terminal | Kitty, Fish and Starship; shared Bash/Zsh login environment |
+| Appearance | Wallpaper-driven Material You palette; GTK, Qt, Darkly and Kvantum |
+| Utilities | Clipboard history, screenshots/OCR, mpv, Cava and EasyEffects |
+| Restore | chezmoi templates, checksummed font downloads and pinned iNiR bootstrap |
 
-### Option 1: One-Line Remote Bootstrap (Any Fresh Machine)
-On a brand new Arch installation, run:
-
-```bash
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply hrithikramprasath
-```
-This single command will:
-1. Download and install `chezmoi`
-2. Clone this repository to `~/.local/share/chezmoi`
-3. Execute package installation hooks for official and AUR packages
-4. Install the pinned iNiR runtime if missing and deploy the managed dotfiles
-
-This is a user-session restore on Arch, not a disk/bootloader installer. It uses
-`sudo` for system packages and may prompt. Existing `~/inir` checkouts are preserved.
-
-### Option 2: Clone & Local Script
-If you prefer running via git clone:
+## Get started
 
 ```bash
 git clone https://github.com/hrithikramprasath/dotfiles.git ~/dotfiles
 cd ~/dotfiles
+# Review packages-repo.txt, packages-aur.txt and the configuration first.
 ./install.sh --full
 ```
 
-### Options for `./install.sh`:
-* `./install.sh` / `./install.sh --configs-only`: Apply managed home/config files without package scripts (requires an installed iNiR runtime; fonts may download).
-* `./install.sh --full`: Full system sync (installs packages if manifests changed + applies configs).
-* `./install.sh --diff`: Preview line-by-line differences between repo and local files; requires chezmoi already installed.
-* `./install.sh --verify`: Check for configuration drift (exits 0 if clean).
+`--full` can install system packages through sudo. Its manifests include kernels,
+CPU microcode, a display manager and other machine-level choices; it is not a
+minimal desktop-only installer. Personal applications are listed separately in
+[`packages-apps.txt`](packages-apps.txt) and are not installed by the restore hook.
 
-> [!NOTE]
-> **Minimal & Bloat-Free by Design**: The automated installation provisions **only** the required OS components, Niri compositor, iNiR shell widgets, fonts, themes, and system tools needed to run this exact desktop environment seamlessly. Personal user applications (such as browsers, Discord, Spotify, Steam, and VS Code) are decoupled into [`packages-apps.txt`](packages-apps.txt). If you wish to install your full app suite on a machine, run:
-> ```bash
-> yay -S --needed - < packages-apps.txt
-> ```
+Already have iNiR installed? Start with `./install.sh --diff`, then use
+`./install.sh --configs-only` when the changes are right. See the
+[installation guide](docs/installation.md) for prerequisites and exact behavior.
 
-## Daily Workflow with Chezmoi
+![The four stages of restoration: review, install, apply and verify](assets/restore-flow.svg)
 
-```bash
-# Edit any configuration safely (auto-applies when editor closes)
-chezmoi edit ~/.config/niri/config.kdl
+## Everyday controls
 
-# Check differences between your repository and active files
-chezmoi diff
+`Super` is the configured Niri modifier.
 
-# Apply changes from repository to active system
-chezmoi apply
+| Shortcut | Action |
+| --- | --- |
+| `Super + Enter` | Terminal |
+| `Super + Space` | iNiR overview / launcher |
+| `Super + V` | Clipboard history |
+| `Super + ,` | Settings |
+| `Super + Shift + S` | Screenshot / region menu |
+| `Super + /` | Full shortcut reference |
+| `Alt + Tab` | Niri's recent-window switcher |
 
-# Check for drift in managed files
-chezmoi verify
+The complete bindings live in
+[`70-binds.kdl`](dot_config/niri/config.d/70-binds.kdl).
 
-# Enter repository directory directly
-chezmoi cd
-```
+## What lives where
 
-## License
+| Path | Purpose |
+| --- | --- |
+| `dot_config/` | Managed application configuration under `~/.config` |
+| `dot_config/quickshell/inir/` | 31 selected runtime overlays: 29 QML files and two scripts |
+| `dot_profile`, `dot_bash*`, `dot_z*` | Login environment and interactive shell setup |
+| `.chezmoiscripts/` | Package synchronization and missing-runtime bootstrap |
+| `.chezmoiexternal.toml` | Pinned font downloads and their licenses |
+| `inir-revision.txt` | Tested base for fresh iNiR installs |
+| `scripts/`, `tests/`, `.github/` | Offline validation and automation; never deployed into the home directory |
+| `docs/`, `assets/` | Guides, review notes and documentation images |
 
-This project is licensed under the [MIT License](LICENSE).
-Copyright (c) 2026 Hrithik Ram Prasath. Anyone using, copying, or distributing these configurations must retain the original copyright and permission notice.
-
-## Runtime ownership and validation
-
-This repository overlays selected files onto the full iNiR installation pinned in
-`inir-revision.txt`. It is not a standalone Quickshell tree. iNiR's installer owns
-its version and migration records; these are excluded from chezmoi deployment so
-applying dotfiles cannot reset update history. Theme generation and iNiR Settings
-also write some managed files, so theme/preferences changes can produce expected
-drift. Review before applying or adding those changes.
-
-The package hook runs when its rendered contents change. `--full` does not force
-an unchanged hook to run, or upgrade/reset an existing iNiR checkout. Repair a
-missing runtime explicitly through the iNiR installer when the hook is unchanged.
-The optional ProtonPlus timer is provided but not enabled automatically.
-
-Niri's `40-environment.kdl.tmpl` renders home paths for the destination machine.
-Edit the template in this repository; the deployed filename remains
-`40-environment.kdl`. Shell login environment lives in `dot_profile`, sourced by
-Bash and Zsh login profiles. The selected Node version remains optional.
-
-Run offline regression checks (Python 3, chezmoi, Bash, jq; Node.js for calculator):
+## Validation and compatibility
 
 ```bash
+python3 scripts/validate.py
 python3 -m unittest discover -s tests -v
 ```
 
-See [the configuration inspection report](docs/inspection-2026-09-19.md) for the
-review scope, fixes and validation limits.
+The validator checks configuration syntax, shader/QML parsing, local documentation
+links and a restore into a temporary home. The behavior suite has **14 tests**.
+Dependencies and runtime checks are in the [maintenance guide](docs/maintenance.md).
+An [optional CI template](docs/examples/validate.yml) runs these checks on pushes
+and pull requests without running the install hook.
 
-Live desktop checks and cleanup results: [verification report](docs/desktop-verification-2026-09-19.md).
+The tested base remains **iNiR 2.30.0 / `dcba34ee`** with local overlays. Upstream
+2.31.0 was reviewed; its larger Settings and panel changes need a separate overlay
+migration. The current setup passes the documented checks, but hardware-specific
+features and every possible desktop interaction have not been verified.
+
+## Credits and license
+
+Original repository work uses [MIT](LICENSE). iNiR-derived source retains
+[GPL-3.0](LICENSES/GPL-3.0.txt); other assets retain their own terms. See
+[third-party attribution](THIRD_PARTY.md) for scope and provenance.

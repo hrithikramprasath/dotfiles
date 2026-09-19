@@ -17,8 +17,8 @@ environment {
     // Force Qt apps to use Wayland natively (no XWayland fallback).
     QT_QPA_PLATFORM "wayland"
 
-    // Let Electron apps (Chrome, VS Code, Discord) pick Wayland automatically.
-    ELECTRON_OZONE_PLATFORM_HINT "auto"
+    // Modern Electron selects Wayland from XDG_SESSION_TYPE automatically.
+    // Per-app overrides belong in that application's flags file.
 
     // Silence noisy Quickshell D-Bus property logs.
     QT_LOGGING_RULES "quickshell.dbus.properties=false"
