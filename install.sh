@@ -8,7 +8,7 @@ usage() {
     echo "Usage: ./install.sh [OPTION]"
     echo ""
     echo "Options:"
-    echo "  --configs-only    (Default) Apply configuration files to ~/.config without running package scripts"
+    echo "  --configs-only    (Default) Apply managed dotfiles without running package scripts"
     echo "  --full            Apply configs and install/sync repository and AUR packages via Chezmoi"
     echo "  --diff            Preview differences between your repository and active files"
     echo "  --verify          Verify that local configs match the repository (checks for drift)"
@@ -19,7 +19,9 @@ ensure_chezmoi() {
     if ! command -v chezmoi >/dev/null 2>&1; then
         echo "Installing chezmoi into ~/.local/bin..."
         mkdir -p "$HOME/.local/bin"
-        sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+        local installer
+        installer=$(curl -fsLS https://get.chezmoi.io)
+        sh -c "$installer" -- -b "$HOME/.local/bin"
         export PATH="$HOME/.local/bin:$PATH"
     fi
 
@@ -48,6 +50,10 @@ EOF
 
 MODE="configs"
 if [ $# -gt 0 ]; then
+    if [ $# -ne 1 ]; then
+        usage >&2
+        exit 1
+    fi
     case "$1" in
         --full)
             MODE="full"
@@ -73,10 +79,22 @@ if [ $# -gt 0 ]; then
     esac
 fi
 
-ensure_chezmoi
+# Inspection must not bootstrap tools, create config files, or link directories.
+if [[ "$MODE" == diff || "$MODE" == verify ]]; then
+    if ! command -v chezmoi >/dev/null 2>&1; then
+        echo "chezmoi is required for --$MODE; install it first." >&2
+        exit 1
+    fi
+else
+    ensure_chezmoi
+fi
 
 case "$MODE" in
     configs)
+        if [[ ! -f "$HOME/.config/quickshell/inir/shell.qml" ]]; then
+            echo "iNiR is not installed. Run ./install.sh --full first." >&2
+            exit 1
+        fi
         echo "Applying dotfiles via Chezmoi (excluding package scripts)..."
         chezmoi apply -S "$DOTFILES_DIR" -x scripts
         echo "Configuration files applied successfully!"
@@ -102,4 +120,4 @@ case "$MODE" in
 esac
 
 echo ""
-echo "Done! Your environment is synchronized."
+echo "Done."

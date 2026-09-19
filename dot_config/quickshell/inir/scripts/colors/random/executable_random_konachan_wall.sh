@@ -73,22 +73,22 @@ if [ "$multiMonitorEnabled" == "true" ]; then
     # Get focused monitor
     focusedMonitor=""
     if command -v niri &> /dev/null && niri msg outputs &> /dev/null; then
-        focusedMonitor=$(niri msg -j outputs 2>/dev/null | jq -r '.[] | select(.focused == true) | .name' 2>/dev/null)
+        focusedMonitor=$(niri msg -j focused-output 2>/dev/null | jq -r '.name // empty' 2>/dev/null)
     elif command -v hyprctl &> /dev/null; then
         focusedMonitor=$(hyprctl monitors -j 2>/dev/null | jq -r '.[] | select(.focused) | .name' 2>/dev/null)
     fi
 
     if [ -n "$focusedMonitor" ]; then
         # Detect workspace range for this monitor (Niri-specific)
-        wsArgs=""
+        wsArgs=()
         if command -v niri &> /dev/null && niri msg workspaces &> /dev/null; then
-            wsFirst=$(niri msg -j workspaces 2>/dev/null | jq -r "[.[] | select(.output == \"$focusedMonitor\") | .idx] | sort | first // empty" 2>/dev/null)
-            wsLast=$(niri msg -j workspaces 2>/dev/null | jq -r "[.[] | select(.output == \"$focusedMonitor\") | .idx] | sort | last // empty" 2>/dev/null)
+            wsFirst=$(niri msg -j workspaces 2>/dev/null | jq -r --arg monitor "$focusedMonitor" '[.[] | select(.output == $monitor) | .idx] | sort | first // empty' 2>/dev/null)
+            wsLast=$(niri msg -j workspaces 2>/dev/null | jq -r --arg monitor "$focusedMonitor" '[.[] | select(.output == $monitor) | .idx] | sort | last // empty' 2>/dev/null)
             if [ -n "$wsFirst" ] && [ -n "$wsLast" ]; then
-                wsArgs="--start-workspace $wsFirst --end-workspace $wsLast"
+                wsArgs=(--start-workspace "$wsFirst" --end-workspace "$wsLast")
             fi
         fi
-        "$SCRIPT_DIR/../switchwall.sh" --image "$downloadPath" --monitor "$focusedMonitor" $wsArgs
+        "$SCRIPT_DIR/../switchwall.sh" --image "$downloadPath" --monitor "$focusedMonitor" "${wsArgs[@]}"
     else
         "$SCRIPT_DIR/../switchwall.sh" --image "$downloadPath"
     fi

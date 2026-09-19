@@ -20,3 +20,5 @@
 backups/
 installed_listfile
 installed_true
+__pycache__/
+*.pyc

@@ -1,0 +1,7 @@
+[Unit]
+Description=ProtonPlus
+ConditionFileIsExecutable=/usr/bin/protonplus
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/protonplus update all

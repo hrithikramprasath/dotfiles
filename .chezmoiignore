@@ -8,3 +8,18 @@ assets
 assets/**
 .gitignore
 .config/mimeapps.list
+inir-revision.txt
+scripts
+scripts/**
+tests
+tests/**
+docs
+docs/**
+
+# Installer-owned state: never overwrite a newer runtime or migration ledger.
+.config/inir/version
+.config/inir/version.json
+.config/inir/migrations.json
+
+# Keep the source directory in git without deploying its placeholder.
+.local/.keep

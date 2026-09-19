@@ -1,0 +1,3 @@
+# Shared login environment must also be available to non-interactive sessions.
+[ -f "$HOME/.profile" ] && . "$HOME/.profile"
+[ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"

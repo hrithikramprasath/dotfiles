@@ -1,0 +1,11 @@
+[Unit]
+Description=ProtonPlus
+
+[Timer]
+# Anchor the first run as well as later runs. OnUnitActiveSec alone has no
+# next deadline when the service has never run in this user-manager session.
+OnActiveSec=1h
+OnUnitActiveSec=1h
+
+[Install]
+WantedBy=timers.target

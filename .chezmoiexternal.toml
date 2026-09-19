@@ -1,0 +1,26 @@
+# Pinned Google Fonts matching the live Japanese typography, with OFL licenses.
+
+[".local/share/fonts/BIZUDPGothic-Regular.ttf"]
+type = "file"
+url = "https://raw.githubusercontent.com/google/fonts/f2bd09badbc763d8757951d52deec29da27e85fb/ofl/bizudpgothic/BIZUDPGothic-Regular.ttf"
+checksum.sha256 = "258d7156c165f2ff774b6efee637c22c3b950de0d8a10e501137061bc8085d01"
+
+[".local/share/fonts/BIZUDPGothic-Bold.ttf"]
+type = "file"
+url = "https://raw.githubusercontent.com/google/fonts/f2bd09badbc763d8757951d52deec29da27e85fb/ofl/bizudpgothic/BIZUDPGothic-Bold.ttf"
+checksum.sha256 = "30eba52fc837e8b62c97d4b82e6706583149fb7294e3712dd71a655eaea80a90"
+
+[".local/share/fonts/BIZUDPMincho-Regular.ttf"]
+type = "file"
+url = "https://raw.githubusercontent.com/google/fonts/f2bd09badbc763d8757951d52deec29da27e85fb/ofl/bizudpmincho/BIZUDPMincho-Regular.ttf"
+checksum.sha256 = "dbcea04578ac1e9d3484525e870ce491bd04361768f4d2ba4b827d96e20f891d"
+
+[".local/share/fonts/bizudpgothic-OFL.txt"]
+type = "file"
+url = "https://raw.githubusercontent.com/google/fonts/f2bd09badbc763d8757951d52deec29da27e85fb/ofl/bizudpgothic/OFL.txt"
+checksum.sha256 = "e753d7155d53c747d037a445e584c8ecfca6dd79846db610417e282a736b28bc"
+
+[".local/share/fonts/bizudpmincho-OFL.txt"]
+type = "file"
+url = "https://raw.githubusercontent.com/google/fonts/f2bd09badbc763d8757951d52deec29da27e85fb/ofl/bizudpmincho/OFL.txt"
+checksum.sha256 = "ef0ed524b3bd012f37015e986809eed6f67905456ebfc1ebd7fcc2765282ee01"

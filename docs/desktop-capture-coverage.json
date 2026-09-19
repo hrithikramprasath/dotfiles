@@ -1,0 +1,390 @@
+{
+  "captured": 77,
+  "surfaces": [
+    {
+      "id": "desktop",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-left/widgets",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-left/ai",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-left/translator",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-left/anime",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-left/anime-schedule",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-left/wallhaven",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-left/news",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-left/ytmusic",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-left/tools",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-left/software",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-right/controls",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-right/notifications",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-right/calendar",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-right/events",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-right/todo",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-right/notepad",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-right/calculator",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-right/sysmon",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-right/weather",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-right/timer",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "sidebar-right/screentime",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "control-panel",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "dashboard",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "media-controls",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "clipboard",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "cheatsheet",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "overview",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "overview/actions",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "overview/clipboard",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "wallpaper/grid",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "wallpaper/coverflow",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "tiling/picker",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "tiling/osd",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/quick",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/system",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/bar",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/wallpaper",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/themes",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/panels",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/tools",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/services",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/advanced",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/shortcuts",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/modules",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/waffle-style",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/compositor",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/about",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/widgets",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/monitors",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/dashboard",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/autostart",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/workspace-strip",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/mascot",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/arrange",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/ricelin",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/dock",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/sidebars",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/ai",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/effects",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/shell-layout",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "settings/orbit",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "equalizer",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "session",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "orbit",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "overlay",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "pill-power",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "pill-media",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "pill-battery",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "pill-calendar",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "pill-link",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "pill-mixer",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "pill-sysmon",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "pill-clipboard",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "pill-glance",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "pill-launcher",
+      "captured": true,
+      "error": null
+    },
+    {
+      "id": "pill-recorder",
+      "captured": true,
+      "error": null
+    }
+  ]
+}

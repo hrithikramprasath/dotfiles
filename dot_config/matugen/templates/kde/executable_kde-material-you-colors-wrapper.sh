@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 
 color=$(tr -d '\n' < "$XDG_STATE_HOME/quickshell/user/generated/color.txt")
 
-current_mode=$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null | tr -d "'")
+current_mode=$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null | tr -d "'" || true)
 if [[ "$current_mode" == "prefer-dark" ]]; then
     mode_flag="-d"
 else
@@ -16,6 +18,10 @@ scheme_variant_str=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --scheme-variant)
+            if [[ $# -lt 2 || $2 == --* ]]; then
+                echo "--scheme-variant requires a value" >&2
+                exit 2
+            fi
             scheme_variant_str="$2"
             shift 2
             ;;
@@ -43,10 +49,13 @@ case "$scheme_variant_str" in
         ;;
 esac
 
-source "$(eval echo ${INIR_VENV:-$ILLOGICAL_IMPULSE_VIRTUAL_ENV})/bin/activate"
+venv="${INIR_VENV:-${ILLOGICAL_IMPULSE_VIRTUAL_ENV:-$XDG_STATE_HOME/quickshell/.venv}}"
+# Accept the legacy literal $HOME prefix without evaluating shell code.
+venv="${venv/#\$HOME/$HOME}"
+source "$venv/bin/activate"
 # Kill any previous daemon instance to prevent process accumulation.
 # kde-material-you-colors runs a persistent main loop by default;
 # without --stop, each wallpaper switch leaves an orphan (~43MB RAM each).
-kde-material-you-colors --stop 2>/dev/null
+kde-material-you-colors --stop 2>/dev/null || true
 kde-material-you-colors "$mode_flag" --color "$color" -sv "$sv_num"
 deactivate

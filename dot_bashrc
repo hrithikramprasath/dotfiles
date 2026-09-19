@@ -1,0 +1,51 @@
+# Retain the selected Node version for non-interactive shells when installed.
+if [ -d "$HOME/.nvm/versions/node/v24.21.0/bin" ]; then
+    case ":$PATH:" in
+        *":$HOME/.nvm/versions/node/v24.21.0/bin:"*) ;;
+        *) export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:$PATH" ;;
+    esac
+fi
+#
+# ~/.bashrc
+#
+
+# pnpm global executables
+export PNPM_HOME="$HOME/.local/share/pnpm"
+case ":$PATH:" in
+    *":$PNPM_HOME/bin:"*) ;;
+    *) export PATH="$PATH:$PNPM_HOME/bin" ;;
+esac
+
+# If not running interactively, don't do anything
+[[ $- != *i* ]] && return
+
+alias ls='ls --color=auto'
+alias grep='grep --color=auto'
+PS1='[\u@\h \W]\$ '
+
+
+# User-installed commands
+case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+
+
+
+# iNiR environment
+export INIR_VENV="$HOME/.local/state/quickshell/.venv"
+export ILLOGICAL_IMPULSE_VIRTUAL_ENV="$INIR_VENV"
+# Apply terminal color sequences (Material You from wallpaper)
+if [ -f ~/.local/state/quickshell/user/generated/terminal/sequences.txt ]; then
+  cat ~/.local/state/quickshell/user/generated/terminal/sequences.txt
+fi
+# Starship prompt (fish is wired via config.fish; bash needs its own init)
+if command -v starship >/dev/null 2>&1; then
+  eval "$(starship init bash)"
+fi
+# end iNiR

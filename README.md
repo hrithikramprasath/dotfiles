@@ -70,7 +70,10 @@ This single command will:
 1. Download and install `chezmoi`
 2. Clone this repository to `~/.local/share/chezmoi`
 3. Execute package installation hooks for official and AUR packages
-4. Deploy and validate all `.config` directories
+4. Install the pinned iNiR runtime if missing and deploy the managed dotfiles
+
+This is a user-session restore on Arch, not a disk/bootloader installer. It uses
+`sudo` for system packages and may prompt. Existing `~/inir` checkouts are preserved.
 
 ### Option 2: Clone & Local Script
 If you prefer running via git clone:
@@ -82,9 +85,9 @@ cd ~/dotfiles
 ```
 
 ### Options for `./install.sh`:
-* `./install.sh` / `./install.sh --configs-only`: Apply configurations only (instant).
+* `./install.sh` / `./install.sh --configs-only`: Apply managed home/config files without package scripts (requires an installed iNiR runtime; fonts may download).
 * `./install.sh --full`: Full system sync (installs packages if manifests changed + applies configs).
-* `./install.sh --diff`: Preview line-by-line differences between repo and local files.
+* `./install.sh --diff`: Preview line-by-line differences between repo and local files; requires chezmoi already installed.
 * `./install.sh --verify`: Check for configuration drift (exits 0 if clean).
 
 > [!NOTE]
@@ -105,7 +108,7 @@ chezmoi diff
 # Apply changes from repository to active system
 chezmoi apply
 
-# Check for unmanaged drift
+# Check for drift in managed files
 chezmoi verify
 
 # Enter repository directory directly
@@ -116,3 +119,33 @@ chezmoi cd
 
 This project is licensed under the [MIT License](LICENSE).
 Copyright (c) 2026 Hrithik Ram Prasath. Anyone using, copying, or distributing these configurations must retain the original copyright and permission notice.
+
+## Runtime ownership and validation
+
+This repository overlays selected files onto the full iNiR installation pinned in
+`inir-revision.txt`. It is not a standalone Quickshell tree. iNiR's installer owns
+its version and migration records; these are excluded from chezmoi deployment so
+applying dotfiles cannot reset update history. Theme generation and iNiR Settings
+also write some managed files, so theme/preferences changes can produce expected
+drift. Review before applying or adding those changes.
+
+The package hook runs when its rendered contents change. `--full` does not force
+an unchanged hook to run, or upgrade/reset an existing iNiR checkout. Repair a
+missing runtime explicitly through the iNiR installer when the hook is unchanged.
+The optional ProtonPlus timer is provided but not enabled automatically.
+
+Niri's `40-environment.kdl.tmpl` renders home paths for the destination machine.
+Edit the template in this repository; the deployed filename remains
+`40-environment.kdl`. Shell login environment lives in `dot_profile`, sourced by
+Bash and Zsh login profiles. The selected Node version remains optional.
+
+Run offline regression checks (Python 3, chezmoi, Bash, jq; Node.js for calculator):
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+See [the configuration inspection report](docs/inspection-2026-09-19.md) for the
+review scope, fixes and validation limits.
+
+Live desktop checks and cleanup results: [verification report](docs/desktop-verification-2026-09-19.md).

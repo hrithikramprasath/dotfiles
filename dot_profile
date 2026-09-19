@@ -1,0 +1,15 @@
+# Retain the selected Node version for non-interactive shells when installed.
+if [ -d "$HOME/.nvm/versions/node/v24.21.0/bin" ]; then
+    case ":$PATH:" in
+        *":$HOME/.nvm/versions/node/v24.21.0/bin:"*) ;;
+        *) export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:$PATH" ;;
+    esac
+fi
+# User-installed commands (idempotent for nested login shells).
+case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
+
+export INIR_VENV="$HOME/.local/state/quickshell/.venv"
+export ILLOGICAL_IMPULSE_VIRTUAL_ENV="$INIR_VENV"

@@ -2,41 +2,73 @@
 # Dotfiles automated package synchronizer managed by Chezmoi
 # packages-repo.txt hash: {{ include "packages-repo.txt" | sha256sum }}
 # packages-aur.txt hash: {{ include "packages-aur.txt" | sha256sum }}
+# inir-revision.txt hash: {{ include "inir-revision.txt" | sha256sum }}
 
 set -euo pipefail
 
 echo "=== Chezmoi: Checking and installing package manifests ==="
 
-# 1. Official repository packages
-if command -v pacman >/dev/null 2>&1; then
-    echo "Installing official repository packages..."
-    sudo pacman -S --needed --noconfirm - < "{{ .chezmoi.sourceDir }}/packages-repo.txt" || true
+if ! command -v pacman >/dev/null 2>&1; then
+    echo "This setup requires Arch Linux (pacman)." >&2
+    exit 1
+fi
+
+# Parse one package per line; ignore comments and empty lines.
+source_dir={{ .chezmoi.sourceDir | quote }}
+for manifest in packages-repo.txt packages-aur.txt inir-revision.txt; do
+    [[ -r "$source_dir/$manifest" ]] || { echo "Missing $manifest" >&2; exit 1; }
+done
+revision=$(tr -d '[:space:]' < "$source_dir/inir-revision.txt")
+if [[ ! $revision =~ ^[0-9a-f]{40}$ ]]; then
+    echo "Invalid pinned iNiR revision." >&2
+    exit 1
+fi
+
+read_packages() {
+    awk '{ sub(/#.*/, ""); if (NF) print $1 }' "$1"
+}
+mapfile -t repo_packages < <(read_packages "$source_dir/packages-repo.txt")
+mapfile -t aur_packages < <(read_packages "$source_dir/packages-aur.txt")
+echo "Installing official repository packages..."
+if ((${#repo_packages[@]})); then
+    sudo pacman -S --needed --noconfirm -- "${repo_packages[@]}"
 fi
 
 # 2. AUR helper (yay)
-if ! command -v yay >/dev/null 2>&1; then
+if ((${#aur_packages[@]})) && ! command -v yay >/dev/null 2>&1; then
     echo "Installing yay AUR helper..."
     tmp_dir=$(mktemp -d)
+    trap 'rm -rf -- "$tmp_dir"' EXIT
     git clone https://aur.archlinux.org/yay.git "$tmp_dir/yay"
     (cd "$tmp_dir/yay" && makepkg -si --noconfirm)
-    rm -rf "$tmp_dir"
+    rm -rf -- "$tmp_dir"
+    trap - EXIT
 fi
 
 # 3. AUR packages
-if command -v yay >/dev/null 2>&1; then
+if ((${#aur_packages[@]})); then
     echo "Installing AUR packages..."
-    yay -S --needed --noconfirm $(grep -v '^[[:space:]]*#' "{{ .chezmoi.sourceDir }}/packages-aur.txt") || true
+    yay -S --needed --noconfirm -- "${aur_packages[@]}"
 fi
 
 # 4. iNiR shell repository
-if [ ! -d "$HOME/inir" ]; then
+if [ ! -e "$HOME/inir" ]; then
     echo "Cloning and configuring iNiR shell..."
     git clone https://github.com/snowarch/inir.git "$HOME/inir"
-    if [ -f "$HOME/inir/setup" ]; then
-        bash "$HOME/inir/setup" install -y -q --skip-backup || true
-    elif [ -f "$HOME/inir/setup.sh" ]; then
-        bash "$HOME/inir/setup.sh" install -y -q --skip-backup || true
+    git -C "$HOME/inir" checkout -B main "$revision"
+fi
+
+# An interrupted installation can leave the checkout but no usable runtime.
+if [[ ! -f "$HOME/.config/quickshell/inir/shell.qml" || ! -x "$HOME/.local/bin/inir" || ! -x "$HOME/.local/state/quickshell/.venv/bin/python" ]]; then
+    if [[ ! -f "$HOME/inir/setup" ]]; then
+        echo "Missing iNiR installer in $HOME/inir; repair the checkout and retry." >&2
+        exit 1
     fi
+    (cd "$HOME/inir" && bash ./setup install -y -q)
+fi
+if [[ ! -f "$HOME/.config/quickshell/inir/shell.qml" || ! -x "$HOME/.local/bin/inir" || ! -x "$HOME/.local/state/quickshell/.venv/bin/python" ]]; then
+    echo "iNiR installation is incomplete; rerun after resolving the installer errors." >&2
+    exit 1
 fi
 
 echo "=== Chezmoi: Package synchronizer completed successfully ==="
