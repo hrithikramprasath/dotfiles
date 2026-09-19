@@ -32,4 +32,6 @@ spawn-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
 // >>> inir-managed-autostart >>>
 // Managed by iNiR Settings — add or remove entries via Settings › Autostart.
 spawn-sh-at-startup "command -v discord >/dev/null 2>&1 && gtk-launch discord"
+spawn-at-startup "gtk-launch" "discord"
+spawn-at-startup "gtk-launch" "com.github.wwmm.easyeffects"
 // <<< inir-managed-autostart <<<
