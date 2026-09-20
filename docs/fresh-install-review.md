@@ -51,9 +51,10 @@ support, user authentication and hardware-specific controls still require testin
 on the new installation. The installer stops on detected failures instead of
 claiming completion.
 
-The earlier live machine's privileged SDDM migration still needs authentication;
-this review did not run the full installer on the existing desktop. A future full
-install's final stage applies the corrected SDDM theme configuration.
+The earlier live machine's privileged SDDM migration and theme refresh were
+subsequently completed successfully on 20 September 2026. iNiR reports no pending
+migrations. No live display-manager restart was performed; see the
+[upgrade report](upgrade-2.31.md) for the completion record.
 
 References: [SDDM setup](https://wiki.archlinux.org/title/SDDM),
 [Arch partial upgrades](https://wiki.archlinux.org/title/System_maintenance#Partial_upgrades_are_unsupported),

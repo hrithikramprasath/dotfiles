@@ -148,7 +148,7 @@ pushes to `main`, pull requests and manual dispatch, without running the install
 
 The tested base is **iNiR 2.31.0 / `9574fa42`**, with the custom overlays migrated
 and an optional-environment startup fix included in the launcher. See the
-[upgrade report](docs/upgrade-2.31.md) for validation, recovery and the remaining
+[upgrade report](docs/upgrade-2.31.md) for validation, recovery and the completed
 system-level SDDM migration. Hardware-specific features and every possible desktop
 interaction have not been verified.
 

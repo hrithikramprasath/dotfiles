@@ -49,22 +49,18 @@ There are non-fatal runtime warnings about inactive Hyprland/BlueZ integrations,
 a stale notification image handle and NVIDIA VDPAU probing. Account-backed
 services, all hardware features and every UI interaction were not retested.
 
-## Remaining system migration
+## Completed system migration
 
-The updater could not authenticate sudo for migration 039, which removes an old
-empty `InputMethod=` override from `/etc/sddm.conf.d/99-inir-theme.conf` and leaves
-SDDM's backend policy to the installed distribution/provider. The existing file
-already has no forced `DisplayServer=x11`. The user shell is running; the login
-screen migration and privileged theme refresh remain pending.
+Migration 039 was applied on 20 September 2026 after local administrator
+authentication became available. It removed the obsolete empty `InputMethod=`
+override. iNiR then reported no pending migrations.
 
-Run `inir migrate` from an interactive terminal, review the migration and supply
-your sudo password there. The updater also printed this theme-refresh command:
-
-```bash
-sudo bash ~/inir/scripts/sddm/install-pixel-sddm.sh
-```
-
-No SDDM restart was performed during the desktop session.
+The ii-pixel theme installer was rerun successfully as the normal user with sudo
+for its system configuration writes. It refreshed the theme, synchronized the
+wallpaper and Material You palette, and updated the local avatar. The SDDM drop-in
+now contains only `[Theme]` and `Current=ii-pixel`, leaving backend policy to SDDM.
+Both SDDM and iNiR remained active. No login-manager restart or logout was performed;
+the updated greeter will be exercised at the next login.
 
 ## Recovery and future updates
 
