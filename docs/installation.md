@@ -1,96 +1,131 @@
-# Installation
+# Install the desktop on fresh Arch
 
-This repository restores a personal user environment on **Arch Linux**. It does
-not partition disks, install a bootloader or guarantee the same result on another
-machine. Start from a working user account, network connection and Arch install.
+`./install.sh --full` is a **desktop installer for a booted Arch Linux system**.
+It installs Niri/iNiR, the SDDM login theme, desktop tools, fonts, icons, audio,
+portals and the tracked appearance/configuration. It does not install your
+personal application list or restore personal documents, accounts or history.
 
-## Before applying
+## Starting point
 
-1. Back up existing dotfiles or inspect the changes with chezmoi before applying.
-2. Review `packages-repo.txt` and `packages-aur.txt`. The official list includes
-   `linux`, `linux-lts`, both CPU microcode packages, SDDM, networking and other
-   machine-level choices. Keep only the choices appropriate for your machine.
-3. Review Niri input/output preferences, startup apps and shell preferences.
-   Discord is an optional app but appears in this personal startup configuration.
-4. Run installation as your normal user with sudo access, not as root. AUR
-   packages are built as that user. Git, curl and a functioning pacman are needed;
-   the official package step includes build tools for the AUR helper.
+Finish the Arch installation first: disks, bootloader, kernel/firmware, appropriate
+GPU drivers, network access and a normal user with a password and sudo access.
+Reboot into that installed system and log into a TTY as that user. Do not run the
+desktop installer as root, through `su`, inside `arch-chroot`, or from the live ISO.
 
-## Clone, inspect, install
+Git must be installed before the clone command. If needed, as your normal user:
+
+```bash
+sudo pacman -Syu --needed git
+```
+
+If sudo or your user account is not configured yet, finish that part of the Arch
+installation first. Use a working network connection throughout the install.
+
+## Install
 
 ```bash
 git clone https://github.com/hrithikramprasath/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-# If chezmoi is already installed:
-./install.sh --diff
-# After reviewing the recipe:
+# Review the desktop package lists and configuration.
 ./install.sh --full
 ```
 
-The wrapper bootstraps chezmoi into `~/.local/bin` if needed, then applies the
-source. It does not overwrite an existing chezmoi configuration file. Every
-wrapper command explicitly uses this checkout as its source; if plain `chezmoi`
-points elsewhere, pass `--source ~/dotfiles` or update your local chezmoi config.
+Supply your sudo password when requested. AUR builds run as your normal user.
+The package step performs a full pacman upgrade to avoid an unsupported partial
+upgrade; it can therefore update applications you already installed, but it does
+not select anything from `packages-apps.txt`. On a fresh install that list is never
+installed. Network or AUR failures stop the command: fix the reported cause and
+rerun the same command. Both setup hooks run again on each full apply.
 
-The package hook installs required official/AUR packages, clones a missing
-`~/inir` at the revision in `inir-revision.txt`, and runs its installer when the
-runtime, launcher or Python environment is missing. An existing iNiR checkout is
-preserved. Installation failures stop the restore rather than being hidden.
+After a successful completion:
 
-Font downloads come from pinned Google Fonts commits and have SHA-256 checksums.
-A network connection is needed for those assets even in configs-only mode when
-not already cached.
+```bash
+reboot
+```
 
-## Wrapper options
+Choose **Niri** in SDDM's session selector and log in. The installer enables SDDM
+for the next boot without restarting the login manager during installation. Kitty
+uses Fish; the account's login shell does not need to be changed.
+
+## What the full command does
+
+1. Checks for a normal user, a booted systemd system, a usable user session and
+   sudo access. This recipe expects the standard `~/.config` and `~/.local` paths.
+2. Installs chezmoi from Arch if missing; installs the desktop manifests with
+   pacman and yay, including build tools and the Xorg backend used by SDDM's
+   default greeter. The desktop session itself is Wayland.
+3. Clones a missing `~/inir` at the tested revision and runs its file/service
+   installer with `--skip-deps`, so this repository owns the package selection.
+   Installs the shell's Python environment. Existing customized checkouts are
+   preserved; incompatible checkout/runtime versions stop deployment.
+4. Applies the personal desktop layout, patched launcher/QML, wallpaper, GTK/Qt
+   configuration, fonts and a curated color palette. Only appearance data is
+   seeded under `.local/state`; no session histories or credentials are restored.
+5. Checks the runtime, Python imports, wallpaper, launcher parity and Niri syntax.
+   Applies GTK settings through dconf, installs/syncs the ii-pixel SDDM theme
+   **after** the restored wallpaper and palette are in place, and requires success.
+6. Enables NetworkManager, Bluetooth, power profiles, SDDM, PipeWire/WirePlumber
+   and the iNiR service linked specifically to `niri.service`. Selects the graphical
+   boot target. The wrapper prints completion only if the final checks pass.
+
+The wallpaper is an intentional desktop appearance asset. The repository does
+not include your home-directory contents, browser profiles, passwords, private
+files or account avatar. Usernames/avatars, detected devices, screen dimensions,
+network/weather/media data and notification contents naturally differ on a new
+installation. The screenshot gallery includes a staged compact-sidebar view;
+see its capture notes for the temporary presentation settings.
+
+## Desktop packages versus personal applications
+
+`packages-repo.txt` and `packages-aur.txt` contain the desktop and its supporting
+tools: terminal, file manager, audio controls, screenshots/OCR and shell features.
+They do not choose kernels, CPU microcode, a bootloader, filesystem tools, a
+snapshot policy or a firewall. Those belong to the base Arch installation.
+
+`packages-apps.txt` is a reference list only. Install whichever personal apps you
+want afterward; no installer hook reads that file. Discord is no longer a default
+autostart entry, and ProtonPlus timer units are no longer deployed. Optional app
+appearance templates/flags are still configuration; they do not install the apps.
+
+## Existing machines and wrapper options
+
+Back up existing configuration before applying. Every wrapper command uses this
+checkout as its source without replacing an existing chezmoi source setting.
+The two full-mode hooks may also run with plain `chezmoi apply`; use the wrapper's
+configs-only option for a configuration-only update.
 
 | Command | Behavior |
 | --- | --- |
-| `./install.sh --diff` | Preview differences; requires chezmoi and creates no bootstrap files |
-| `./install.sh --verify` | Check managed-file drift; exits nonzero when files differ |
-| `./install.sh --configs-only` | Apply home/config files, excluding install scripts; requires an existing iNiR runtime |
-| `./install.sh --full` | Apply files and run changed package hooks |
+| `./install.sh --diff` | Read-only preview; requires chezmoi |
+| `./install.sh --verify` | Check managed-file drift; nonzero if different |
+| `./install.sh --configs-only` | Apply home files without either setup hook; requires an existing compatible runtime |
+| `./install.sh --full` | Install/update desktop dependencies, apply files and configure login/services |
 
-No option is equivalent to a distribution upgrade. Chezmoi's `run_onchange`
-hook runs only when its rendered contents change; `--full` does not force a
-successful, unchanged hook to rerun. To repair a missing runtime with an unchanged
-hook, review and run the installer in your existing `~/inir` checkout, then apply
-the dotfiles again. Do not reset a customized checkout to upstream to repair it.
+`--full` is intended to select this desktop, including SDDM. Review it carefully
+on a machine with another login manager or network/audio stack. It does not
+silently reset a customized iNiR checkout to upstream. Follow the
+[maintenance guide](maintenance.md) to migrate an incompatible installed version.
+A changed pin alone does not upgrade an existing runtime.
 
-## Optional applications
-
-`packages-apps.txt` is a separate convenience list. Review it before installing:
+## Verify after the first graphical login
 
 ```bash
-yay -S --needed - < packages-apps.txt
-```
-
-Optional utilities can still be required for particular shell features. For
-example, removing an audio/network editor because a shell panel looks similar
-can remove its fallback settings interface.
-
-The ProtonPlus user service and timer are provided but not enabled automatically.
-If you use ProtonPlus and want hourly updates, inspect the unit, then run:
-
-```bash
-systemctl --user daemon-reload
-systemctl --user enable --now protonplus.timer
-```
-
-## After installation
-
-```bash
-./install.sh --verify
 niri validate -c ~/.config/niri/config.kdl
 inir doctor
 systemctl --user status inir.service
+systemctl status sddm.service
+./install.sh --verify
 ```
 
-Use the installed Niri session from your login manager, or an appropriately
-configured `niri-session`. Log out and back in when applying environment changes;
-reopening a terminal does not change the compositor's environment. Browser flags
-take effect when the corresponding application is fully restarted.
+Settings and wallpaper generation can legitimately change managed files after
+login; inspect drift with `--diff`. Never start a second shell from a compositor
+autostart entry: `inir.service` owns it.
 
-Do not run both a compositor autostart entry and `inir.service` for the shell.
-The managed configuration expects the systemd service to own iNiR.
+The automated checks exercise a temporary-home restore, mocked installer/service
+failure paths, current package resolution and configuration syntax. They are not
+a fresh-disk VM boot test or a guarantee across GPUs, mirrors and future rolling
+releases. See the [fresh-install review](fresh-install-review.md) for evidence.
 
-Read [maintenance](maintenance.md) before editing or updating the runtime.
+References: [Arch system maintenance](https://wiki.archlinux.org/title/System_maintenance),
+[SDDM](https://wiki.archlinux.org/title/SDDM), and
+[Niri session setup](https://github.com/niri-wm/niri/wiki/Getting-Started).

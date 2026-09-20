@@ -3,6 +3,7 @@
 set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PATH="$HOME/.local/bin:$PATH"
 
 usage() {
     echo "Usage: ./install.sh [OPTION]"
@@ -17,12 +18,8 @@ usage() {
 
 ensure_chezmoi() {
     if ! command -v chezmoi >/dev/null 2>&1; then
-        echo "Installing chezmoi into ~/.local/bin..."
-        mkdir -p "$HOME/.local/bin"
-        local installer
-        installer=$(curl -fsLS https://get.chezmoi.io)
-        sh -c "$installer" -- -b "$HOME/.local/bin"
-        export PATH="$HOME/.local/bin:$PATH"
+        echo "Installing chezmoi from Arch's official repository..."
+        sudo pacman -Syu --needed --noconfirm chezmoi
     fi
 
     # Ensure source directory is linked and configured
@@ -81,6 +78,37 @@ if [ $# -gt 0 ]; then
     esac
 fi
 
+if [[ "$MODE" == full ]]; then
+    if [[ "$EUID" == 0 ]]; then
+        echo "Run ./install.sh --full as your normal login user, not root or sudo." >&2
+        exit 1
+    fi
+    if ! command -v pacman >/dev/null || ! command -v sudo >/dev/null; then
+        echo "A booted Arch installation with sudo access is required." >&2
+        exit 1
+    fi
+    if [[ ! -d /run/systemd/system ]]; then
+        echo "Boot the installed Arch system first; do not run this in arch-chroot or the live ISO." >&2
+        exit 1
+    fi
+    for var in XDG_CONFIG_HOME XDG_DATA_HOME XDG_STATE_HOME; do
+        case "$var" in
+            XDG_CONFIG_HOME) expected="$HOME/.config" ;;
+            XDG_DATA_HOME) expected="$HOME/.local/share" ;;
+            XDG_STATE_HOME) expected="$HOME/.local/state" ;;
+        esac
+        if [[ -n "${!var:-}" && "${!var}" != "$expected" ]]; then
+            echo "This restore expects $var=$expected; unset your custom override first." >&2
+            exit 1
+        fi
+    done
+    sudo -v
+    systemctl --user show-environment >/dev/null || {
+        echo "No systemd user session. Log into a TTY as your normal user (not through su) and retry." >&2
+        exit 1
+    }
+fi
+
 # Inspection must not bootstrap tools, create config files, or link directories.
 if [[ "$MODE" == diff || "$MODE" == verify ]]; then
     if ! command -v chezmoi >/dev/null 2>&1; then
@@ -104,7 +132,7 @@ case "$MODE" in
     full)
         echo "Running full system synchronization via Chezmoi..."
         chezmoi apply -S "$DOTFILES_DIR"
-        echo "Full system sync completed successfully!"
+        echo "Desktop installation completed. Reboot, then select Niri in SDDM."
         ;;
     diff)
         echo "Showing differences between repository and active configs:"

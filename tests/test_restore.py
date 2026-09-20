@@ -17,12 +17,15 @@ if name == 'sudo':
     os.execvp(sys.argv[1], sys.argv[1:])
 if name == 'git' and sys.argv[1] == 'clone':
     root = pathlib.Path(sys.argv[-1]); root.mkdir(parents=True)
-    (root / 'setup').write_text('#!/bin/bash\\nrestore-runtime\\n')
+    (root / 'setup').write_text('#!/bin/bash\\nrestore-runtime "$@"\\n')
+if name == 'git' and 'show' in sys.argv:
+    print('2.31.0')
 if name == 'restore-runtime' and not os.environ.get('FAIL_INSTALL'):
     home = pathlib.Path.home()
     for rel in ['.config/quickshell/inir/shell.qml', '.local/bin/inir', '.local/state/quickshell/.venv/bin/python']:
         target = home / rel; target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text('#!/bin/sh\\nexit 0\\n'); target.chmod(0o755)
+    (home / '.config/quickshell/inir/VERSION').write_text('2.31.0\\n')
 if name == os.environ.get('FAIL_COMMAND') or (name == 'restore-runtime' and os.environ.get('FAIL_INSTALL')):
     sys.exit(17)
 '''
@@ -46,7 +49,7 @@ class RestoreTests(unittest.TestCase):
         config.write_text('sourceDir = ' + json.dumps(str(self.source)) + '\n')
         rendered = subprocess.check_output([
             shutil.which('chezmoi'), '--config', str(config), 'execute-template',
-        ], input=(SOURCE / '.chezmoiscripts/run_onchange_before_install-packages.sh.tmpl').read_text(), text=True)
+        ], input=(SOURCE / '.chezmoiscripts/run_before_10-install-packages.sh.tmpl').read_text(), text=True)
         self.script = self.root / 'restore.sh'; self.script.write_text(rendered)
         self.env = dict(os.environ, HOME=str(self.home), PATH=str(self.bin)+':/usr/bin:/bin', TEST_LOG=str(self.log))
 
@@ -57,9 +60,10 @@ class RestoreTests(unittest.TestCase):
 
     def test_fresh_install_pins_revision_and_parses_comments(self):
         result = self.run_hook(); self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn(['pacman', '-S', '--needed', '--noconfirm', '--', 'niri', 'kitty'], self.commands)
+        self.assertIn(['pacman', '-Syu', '--needed', '--noconfirm', '--', 'niri', 'kitty'], self.commands)
         self.assertIn(['git', '-C', str(self.home/'inir'), 'checkout', '-B', 'main', (SOURCE/'inir-revision.txt').read_text().strip()], self.commands)
         self.assertTrue((self.home/'.local/bin/inir').exists())
+        self.assertIn(['restore-runtime', 'install', '--skip-deps', '-y', '-q'], self.commands)
 
     def test_invalid_revision_aborts_before_package_changes(self):
         (self.source / 'inir-revision.txt').write_text('invalid\n')
@@ -79,11 +83,26 @@ class RestoreTests(unittest.TestCase):
         repo=self.home/'inir'; repo.mkdir(); (repo/'setup').write_text('restore-runtime\n')
         result=self.run_hook(); self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn(['restore-runtime'], self.commands)
-        self.assertFalse(any(c[0] == 'git' for c in self.commands))
+        self.assertFalse(any(c[0] == 'git' and ('clone' in c or 'checkout' in c) for c in self.commands))
 
     def test_installer_failure_is_not_reported_as_success(self):
         result=self.run_hook(FAIL_INSTALL='1'); self.assertEqual(result.returncode, 17)
         self.assertNotIn('completed successfully', result.stdout)
+
+    def test_incompatible_runtime_is_rejected_before_overlays(self):
+        subprocess.run([str(self.bin/'restore-runtime')], env=self.env, check=True)
+        (self.home/'.config/quickshell/inir/VERSION').write_text('2.30.0\n')
+        result=self.run_hook()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('does not match the tested base', result.stderr)
+        self.assertEqual(sum(c[0]=='restore-runtime' for c in self.commands), 1)
+
+    def test_unrelated_checkout_is_not_reset(self):
+        repo=self.home/'inir'; repo.mkdir(); (repo/'setup').write_text('restore-runtime\n')
+        result=self.run_hook(FAIL_COMMAND='git')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('not based on the tested pin', result.stderr)
+        self.assertFalse(any('checkout' in c or c[0]=='restore-runtime' for c in self.commands))
 
     def test_complete_install_does_not_reset_existing_checkout(self):
         subprocess.run([str(self.bin/'restore-runtime')], env=self.env, check=True)

@@ -2,6 +2,7 @@
 """Offline source checks and an isolated restore; never apply to the real home."""
 from pathlib import Path
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -61,11 +62,21 @@ def main():
         config.write_text('sourceDir = ' + json.dumps(str(staged)) + '\n')
         base = ['chezmoi', '--config', str(config), '--destination', str(home),
                 '--persistent-state', str(root/'state.boltdb'), '--cache', str(root/'cache')]
-        run(base + ['apply', '--exclude', 'scripts'])
-        run(base + ['verify', '--exclude', 'scripts'])
+        env = dict(os.environ, HOME=str(home), XDG_CONFIG_HOME=str(home/'.config'),
+                   XDG_DATA_HOME=str(home/'.local/share'), XDG_STATE_HOME=str(home/'.local/state'))
+        run(base + ['apply', '--exclude', 'scripts'], env=env)
+        run(base + ['verify', '--exclude', 'scripts'], env=env)
         run(['niri', 'validate', '-c', str(home/'.config/niri/config.kdl')])
         for p in home.rglob('*.json'):
             json.loads(p.read_text())
+        preferences = json.loads((home/'.config/inir/config.json').read_text())
+        wallpaper = Path(preferences['background']['wallpaperPath'])
+        assert wallpaper.is_relative_to(home) and wallpaper.is_file()
+        assert not preferences['overlay']['floatingImage']['imageSource']
+        generated = home/'.local/state/quickshell/user/generated'
+        assert (generated/'wallpaper/path.txt').read_text().strip() == str(wallpaper)
+        assert json.loads((generated/'colors.json').read_text())
+        assert (home/'.local/share/color-schemes/Darkly.colors').is_file()
         for name in ['version', 'version.json', 'migrations.json']:
             assert not (home/'.config/inir'/name).exists(), name
         for name in ['docs', 'assets', 'scripts', 'tests', 'LICENSES', '.github', 'THIRD_PARTY.md']:

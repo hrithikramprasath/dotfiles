@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+source_dir={{ .chezmoi.sourceDir | quote }}
+bash "$source_dir/scripts/finalize-desktop.sh"

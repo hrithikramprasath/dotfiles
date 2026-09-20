@@ -88,10 +88,12 @@ cd ~/dotfiles
 ./install.sh --full
 ```
 
-`--full` can install system packages through sudo. Its manifests include kernels,
-CPU microcode, a display manager and other machine-level choices; it is not a
-minimal desktop-only installer. Personal applications are listed separately in
-[`packages-apps.txt`](packages-apps.txt) and are not installed by the restore hook.
+`--full` installs the desktop, its tools and appearance assets, then configures the
+ii-pixel login screen and next-login services. Run it as a normal user with sudo
+on a **booted Arch installation** with networking and GPU drivers ready. It uses
+`pacman -Syu`; it does not choose kernels or install `packages-apps.txt`.
+After success, reboot and select **Niri** in SDDM. Follow the
+[fresh-install guide](docs/installation.md) for prerequisites and verification.
 
 Already have iNiR installed? Start with `./install.sh --diff`, then use
 `./install.sh --configs-only` when the changes are right. See the
@@ -123,8 +125,9 @@ The complete bindings live in
 | `dot_config/` | Managed application configuration under `~/.config` |
 | `dot_config/quickshell/inir/` | 32 selected runtime overlays: 29 QML files and three scripts |
 | `dot_profile`, `dot_bash*`, `dot_z*` | Login environment and interactive shell setup |
+| `private_dot_local/state/`, `private_dot_local/share/color-schemes/` | Curated appearance palette and Qt colors; no histories |
 | `private_dot_local/bin/executable_inir.tmpl` | Deploys the patched launcher from the same source as the runtime copy |
-| `.chezmoiscripts/` | Package synchronization and missing-runtime bootstrap |
+| `.chezmoiscripts/` | Repeatable desktop package setup and post-restore login/service checks |
 | `.chezmoiexternal.toml` | Pinned font downloads and their licenses |
 | `inir-revision.txt` | Tested base for fresh iNiR installs |
 | `scripts/`, `tests/`, `.github/workflows/` | Offline validation and automation; never deployed into the home directory |
@@ -138,7 +141,7 @@ python3 -m unittest discover -s tests -v
 ```
 
 The validator checks configuration syntax, shader/QML parsing, local documentation
-links and a restore into a temporary home. The behavior suite has **15 tests**.
+links and a restore into a temporary home. The behavior suite has **22 tests**.
 Dependencies and runtime checks are in the [maintenance guide](docs/maintenance.md).
 The [GitHub Actions workflow](.github/workflows/validate.yml) runs these checks on
 pushes to `main`, pull requests and manual dispatch, without running the install hook.

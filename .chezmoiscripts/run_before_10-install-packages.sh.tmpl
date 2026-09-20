@@ -31,7 +31,7 @@ mapfile -t repo_packages < <(read_packages "$source_dir/packages-repo.txt")
 mapfile -t aur_packages < <(read_packages "$source_dir/packages-aur.txt")
 echo "Installing official repository packages..."
 if ((${#repo_packages[@]})); then
-    sudo pacman -S --needed --noconfirm -- "${repo_packages[@]}"
+    sudo pacman -Syu --needed --noconfirm -- "${repo_packages[@]}"
 fi
 
 # 2. AUR helper (yay)
@@ -58,13 +58,27 @@ if [ ! -e "$HOME/inir" ]; then
     git -C "$HOME/inir" checkout -B main "$revision"
 fi
 
+# A pin is a bootstrap base, not permission to overwrite an unrelated checkout.
+if ! git -C "$HOME/inir" merge-base --is-ancestor "$revision" HEAD; then
+    echo "Existing ~/inir is not based on the tested pin. Merge the pinned release and review local changes first." >&2
+    exit 1
+fi
+expected_version=$(git -C "$HOME/inir" show "$revision:VERSION")
+if [[ -f "$HOME/.config/quickshell/inir/shell.qml" ]]; then
+    installed_version=$(cat "$HOME/.config/quickshell/inir/VERSION" 2>/dev/null || true)
+    if [[ "$installed_version" != "$expected_version" ]]; then
+        echo "Installed iNiR version does not match the tested base ($expected_version). Upgrade it before applying these overlays." >&2
+        exit 1
+    fi
+fi
+
 # An interrupted installation can leave the checkout but no usable runtime.
 if [[ ! -f "$HOME/.config/quickshell/inir/shell.qml" || ! -x "$HOME/.local/bin/inir" || ! -x "$HOME/.local/state/quickshell/.venv/bin/python" ]]; then
     if [[ ! -f "$HOME/inir/setup" ]]; then
         echo "Missing iNiR installer in $HOME/inir; repair the checkout and retry." >&2
         exit 1
     fi
-    (cd "$HOME/inir" && bash ./setup install -y -q)
+    (cd "$HOME/inir" && bash ./setup install --skip-deps -y -q)
 fi
 if [[ ! -f "$HOME/.config/quickshell/inir/shell.qml" || ! -x "$HOME/.local/bin/inir" || ! -x "$HOME/.local/state/quickshell/.venv/bin/python" ]]; then
     echo "iNiR installation is incomplete; rerun after resolving the installer errors." >&2

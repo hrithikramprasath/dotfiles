@@ -52,6 +52,13 @@ Doctor reporting local commits ahead of upstream is expected for this branch.
 Niri already starts modern xwayland-satellite on demand. Do not add a second
 manual satellite startup process or force a fixed `DISPLAY` value.
 
+Full restores rerun both setup hooks. They install only the desktop manifests,
+then configure the login theme and services after the files are applied. Use
+`--configs-only` to avoid package/service changes. The curated palette under
+`private_dot_local/state/quickshell/user/generated` contains colors only; do not
+replace it by importing the whole live state directory. Wallpaper changes may
+regenerate these files, which is expected drift.
+
 ## Local validation
 
 Required tools on Arch: Python 3.11+, Bash, chezmoi, jq, Node.js, Fish, Niri,
@@ -73,7 +80,9 @@ The [active GitHub Actions workflow](../.github/workflows/validate.yml) runs the
 checks for pushes to `main`, pull requests and manual dispatch. It uses an Arch
 container, read-only repository permissions and a commit-pinned checkout action.
 Container preparation installs validation tools and requires network access;
-the checks do not install your desktop. The first hosted run passed on
+the checks do not install your desktop. A separate online step resolves the
+desktop package plan and checks AUR package availability; it does not build AUR
+packages. Run it locally with `python3 scripts/check-packages.py`. The first hosted run passed on
 20 September 2026. The [example copy](examples/validate.yml) is retained for reuse.
 
 After changes to live behavior, also check `inir doctor`, service logs and the
