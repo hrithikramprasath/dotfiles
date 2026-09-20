@@ -11,11 +11,15 @@ import qs.modules.common
 import qs.modules.common.functions
 import qs.modules.common.widgets
 import qs.modules.common.widgets.widgetCanvas
+import qs.modules.iris.style
+import qs.modules.iris.widgets
 
 AbstractWidget {
     id: root
 
     required property string configEntryName
+    readonly property bool widgetIrisFamily: (Config.options?.panelFamily ?? "ii") === "iris"
+    readonly property bool widgetIris: root.widgetIrisFamily && root.irisDesign === "iris"
     required property int screenWidth
     required property int screenHeight
     required property int scaledScreenWidth
@@ -69,6 +73,7 @@ AbstractWidget {
     // Disable base class x/y behaviors — we define our own with _autoPosition gating
     animateXPos: false
     animateYPos: false
+    dragAboveContent: GlobalStates.widgetEditMode
 
     // ── Per-widget lock (prevent accidental drag/resize) ──
     readonly property bool locked: Boolean(root._readConfigKey("locked") ?? false)
@@ -83,8 +88,30 @@ AbstractWidget {
     // font sizes by it, so the old 1.05 press bump physically moved/resized the
     // widget as soon as it was selected.
     property bool _isResizing: false
+    property bool _irisSizing: false
+    property bool _irisPreviewing: false
     property var _resizePreviewValues: ({})
     readonly property real scaleFactor: _baseScale
+    property bool _geometryReady: false
+    readonly property bool animateGeometry: root._geometryReady && root.animationsActive
+        && !root._isResizing && !root.containsPress
+
+    Behavior on implicitWidth {
+        enabled: root.animateGeometry
+        NumberAnimation {
+            duration: root.widgetIris ? IrisStyle.morphDuration : Appearance.animation.elementMove.duration
+            easing.type: root.widgetIris ? Easing.BezierSpline : Appearance.animation.elementMove.type
+            easing.bezierCurve: root.widgetIris ? IrisStyle.morphCurve : Appearance.animation.elementMove.bezierCurve
+        }
+    }
+    Behavior on implicitHeight {
+        enabled: root.animateGeometry
+        NumberAnimation {
+            duration: root.widgetIris ? IrisStyle.morphDuration : Appearance.animation.elementMove.duration
+            easing.type: root.widgetIris ? Easing.BezierSpline : Appearance.animation.elementMove.type
+            easing.bezierCurve: root.widgetIris ? IrisStyle.morphCurve : Appearance.animation.elementMove.bezierCurve
+        }
+    }
     readonly property real widgetOpacity: {
         const v = Number(root._readConfigKey("widgetOpacity") ?? 100);
         return Math.max(0, Math.min(1, Number.isFinite(v) ? v / 100 : 1.0));
@@ -102,7 +129,7 @@ AbstractWidget {
     readonly property bool _widgetIslandStyle: !Appearance.zzzEverywhere && !Appearance.cookieEverywhere
         && !Appearance.angelEverywhere && !Appearance.auroraEverywhere && !Appearance.inirEverywhere
         && (Config.options?.background?.widgets?.style ?? "panel") === "island"
-    readonly property bool blurAvailable: Appearance.effectsEnabled
+    readonly property bool blurAvailable: !root.widgetIris && Appearance.effectsEnabled
         && (Appearance.angelEverywhere
             || (Appearance.auroraEverywhere && !Appearance.inirEverywhere)
             || (root._widgetIslandStyle
@@ -197,6 +224,13 @@ AbstractWidget {
             case "bottomRight":  return Qt.point(right, bottom)
             default:               return Qt.point(cx, cy)
         }
+    }
+
+    function nudge(dx: real, dy: real): void {
+        if (root.locked) return
+        root._setOutputValues({placementStrategy: "free",
+            x: root._snapToPixel(root._clampX(root.x + dx)),
+            y: root._snapToPixel(root._clampY(root.y + dy))})
     }
 
     function _cycleSnapZone(): void {
@@ -299,16 +333,10 @@ AbstractWidget {
         return root._clampY(root._autoPlaceY);
     }
 
-    // Guard: briefly suppress auto-position after release so onReleased can update config
-    property bool _releaseGuard: false
-    Timer {
-        id: _releaseGuardTimer
-        interval: 50
-        onTriggered: root._releaseGuard = false
-    }
-
-    // Auto-position when NOT free and NOT actively being dragged in edit mode
-    readonly property bool _autoPosition: root.placementStrategy !== "free" && !(GlobalStates.widgetEditMode && (root.isDragging || root.containsPress || root._isResizing || root._releaseGuard))
+    // The canvas keeps containsPress true through the drop commit. Placement
+    // therefore resumes from committed coordinates, without a timed guard.
+    readonly property bool _autoPosition: root.placementStrategy !== "free"
+        && !root.containsPress && !root.isDragging && !root._isResizing
     Binding {
         target: root
         property: "x"
@@ -361,13 +389,13 @@ AbstractWidget {
     Timer {
         id: _chaosReportDebounce
         interval: 250
-        onTriggered: MascotChaos.report(root.configEntryName, root.x, root.y, root.width, root.height)
+        onTriggered: MascotChaos.report(root.editInstanceKey, root.x, root.y, root.width, root.height, root.outputName, root.configEntryName)
         // widgets born while chaos is already on still need a first report
         Component.onCompleted: if (root._chaosWatch) restart()
     }
     on_ChaosWatchChanged: {
         if (_chaosWatch) _chaosReportDebounce.restart()
-        else MascotChaos.unreport(root.configEntryName)
+        else MascotChaos.unreport(root.editInstanceKey)
     }
     Connections {
         target: root
@@ -420,17 +448,16 @@ AbstractWidget {
 
     Connections {
         target: MascotChaos
-        enabled: MascotChaos.enabled
         function onImpact(widgetKey, vx, vy, mode) {
-            if (widgetKey !== root.configEntryName) return
-            if (GlobalStates.screenLocked || !root.visible) return
+            if (!MascotChaos.enabled || widgetKey !== root.editInstanceKey) return
+            if (MascotChaos.suppressed || !root.visible || root.locked) return
             _chaosFling.stop()
             _chaosReturn.stop()
-            MascotChaos.rememberOriginal(root.configEntryName, root.x, root.y)
-            root._flingWreck = mode === "wreck" || mode === "vanish"
-            root._flingPersist = mode === "persist" && root.placementStrategy === "free" && !root.locked
+            root._flingWreck = MascotChaos.allowRearrange && (mode === "wreck" || mode === "vanish")
+            root._flingPersist = MascotChaos.allowRearrange && mode === "persist" && root.placementStrategy === "free" && !root.locked
+            if (root._flingPersist) MascotChaos.rememberOriginal(root.editInstanceKey, root.x, root.y)
             root._flingX = vx
-            if (mode === "vanish") {
+            if (mode === "vanish" && root._flingWreck) {
                 // stolen: carried clean off the screen edge until tidy
                 root._flingX = vx >= 0
                     ? root.scaledScreenWidth - root.x + root.width
@@ -451,6 +478,8 @@ AbstractWidget {
             _chaosFling.restart()
         }
         function onTidied() {
+            root._flingPersist = false
+            root._flingWreck = false
             _chaosFling.stop()
             _chaosReturn.stop()
             root._flingWreck = false
@@ -479,11 +508,11 @@ AbstractWidget {
     readonly property bool powerReduced: WidgetPowerManager.reducedModeForOutput(root.outputName)
 
     // Effective animation state: animations enabled AND power active
-    readonly property bool animationsActive: Appearance.animationsEnabled && root.powerActive
+    readonly property bool animationsActive: (root.widgetIris ? IrisStyle.motionEnabled : Appearance.animationsEnabled) && root.powerActive
 
     // Visual feedback when paused - desaturation + slight dim
     // Config option to disable visual effect if user only wants GPU savings
-    readonly property bool _showPausedEffect: Config.options?.background?.widgets?.powerSaving?.showPausedEffect ?? true
+    readonly property bool _showPausedEffect: Config.options?.background?.widgets?.powerSaving?.showPausedEffect ?? false
     readonly property real _pausedSaturation: root.powerActive ? 0 : -0.7  // -0.7 = mostly grayscale
     readonly property real _pausedBrightness: root.powerActive ? 0 : -0.15 // slight dim
     
@@ -516,19 +545,22 @@ AbstractWidget {
     readonly property bool _isZonePlacement: root._snapZones.indexOf(root.placementStrategy) >= 0
     draggable: (placementStrategy === "free" || GlobalStates.widgetEditMode) && !GlobalStates.screenLocked && !root.locked
     function syncFreePositionFromConfig(): void {
-        if (!Config.ready) return;
+        if (!Config.ready || root.containsPress || root._isResizing) return;
         if (root.placementStrategy !== "free") return;
         root.x = root.targetX;
         root.y = root.targetY;
     }
 
+    onTargetXChanged: root.syncFreePositionFromConfig()
+    onTargetYChanged: root.syncFreePositionFromConfig()
+
     function applyPlacementFromConfig(): void {
-        if (!Config.ready) return;
+        if (!Config.ready || root.containsPress || root._isResizing) return;
         if (root._isZonePlacement) {
             root.snapToZone(root.placementStrategy);
             // Local wallpaper sampling is explicitly opt-in. Zone placement
             // itself remains independent from color adaptation.
-            if (root.positionColorAdaptationEnabled && root.needsColText)
+            if (root._regionSampling)
                 _placementDebounce.restart();
         } else {
             syncFreePositionFromConfig();
@@ -551,14 +583,19 @@ AbstractWidget {
         root.quickControlsAvailableHeight < 760
     readonly property bool quickControlsWide: root.quickControlsDense
         && root.quickControlsAvailableWidth >= 480
-    function _resolveEditControlsGeometry(widgetX: real, widgetY: real, popoverVisible: bool): var {
+    // The sheet is placed once and stays there. Its height is animated and its
+    // pages differ in size, so resolving the side from the live height made the
+    // toolbar and the sheet chase every content change and flip edges mid-frame.
+    function _resolveEditControlsGeometry(widgetX: real, widgetY: real, popoverVisible: bool,
+            latchedSide: string, reservedHeight: real, reservedWidth: real): var {
         const leftBound = root._safeLeft + root._editScreenMargin
         const topBound = root._safeTop + root._editScreenMargin
         const rightBound = root._safeRight - root._editScreenMargin
         const bottomBound = root._safeBottom - root._editScreenMargin
         const safeX = root._clampX(widgetX)
         const safeY = root._clampY(widgetY)
-        const popoverHeight = popoverVisible ? editPopoverPanel.height : 0
+        const popoverHeight = popoverVisible
+            ? Math.max(reservedHeight, editPopoverPanel.height) : 0
         const stackHeight = editToolbar.height
             + (popoverVisible ? popoverHeight + root._editPopoverGap : 0)
         const spaceAbove = Math.max(0, safeY - topBound - root._editToolbarGap)
@@ -575,26 +612,38 @@ AbstractWidget {
         const fitsRight = popoverVisible
             && spaceRight >= editPopoverPanel.width
         const useSide = !fitsAbove && !fitsBelow && (fitsLeft || fitsRight)
-        const side = useSide
+        const natural = useSide
             ? (fitsLeft && fitsRight
                 ? (spaceRight >= spaceLeft ? "right" : "left")
                 : fitsRight ? "right" : "left")
             : (fitsAbove ? "above" : fitsBelow ? "below"
                 : spaceBelow > spaceAbove ? "below" : "above")
+        const latchUsable = latchedSide.length > 0
+            && (latchedSide === "above" ? spaceAbove >= stackHeight
+                : latchedSide === "below" ? spaceBelow >= stackHeight
+                : latchedSide === "left" ? spaceLeft >= editPopoverPanel.width
+                : spaceRight >= editPopoverPanel.width)
+        const side = latchUsable ? latchedSide : natural
         const below = side === "below"
+        const sideways = side === "left" || side === "right"
         const toolbarMaxX = Math.max(leftBound, rightBound - editToolbar.width)
         const toolbarX = Math.max(leftBound, Math.min(toolbarMaxX,
             safeX + (root.width - editToolbar.width) / 2))
-        let toolbarY
+        // The toolbar hugs the widget whatever the sheet does; the sheet then
+        // hangs off the toolbar, growing away from it.
+        const toolbarTop = Math.max(topBound,
+            Math.min(bottomBound - editToolbar.height,
+                safeY - root._editToolbarGap - editToolbar.height))
+        const toolbarBottom = Math.max(topBound,
+            Math.min(bottomBound - editToolbar.height,
+                safeY + root.height + root._editToolbarGap))
+        const toolbarY = sideways
+            ? (safeY - root._editToolbarGap - editToolbar.height >= topBound
+                ? toolbarTop : toolbarBottom)
+            : below ? toolbarBottom : toolbarTop
         let popoverX
         let popoverY
-        if (useSide) {
-            const toolbarAbove = safeY - root._editToolbarGap
-                - editToolbar.height >= topBound
-            toolbarY = toolbarAbove
-                ? safeY - root._editToolbarGap - editToolbar.height
-                : Math.min(bottomBound - editToolbar.height,
-                    safeY + root.height + root._editToolbarGap)
+        if (sideways) {
             popoverX = side === "left"
                 ? safeX - root._editToolbarGap - editPopoverPanel.width
                 : safeX + root.width + root._editToolbarGap
@@ -602,23 +651,15 @@ AbstractWidget {
                 bottomBound - editPopoverPanel.height,
                 safeY + (root.height - editPopoverPanel.height) / 2))
         } else {
-            const preferredStackY = below
-                ? safeY + root.height + root._editToolbarGap
-                : safeY - root._editToolbarGap - stackHeight
-            const stackMaxY = Math.max(topBound, bottomBound - stackHeight)
-            const stackY = Math.max(topBound,
-                Math.min(stackMaxY, preferredStackY))
-            toolbarY = below
-                ? stackY
-                : stackY + (popoverVisible
-                    ? popoverHeight + root._editPopoverGap : 0)
-            const popoverMaxX = Math.max(leftBound,
-                rightBound - editPopoverPanel.width)
+            const slotWidth = Math.max(reservedWidth, editPopoverPanel.width)
+            const popoverMaxX = Math.max(leftBound, rightBound - slotWidth)
             popoverX = Math.max(leftBound, Math.min(popoverMaxX,
-                toolbarX + (editToolbar.width - editPopoverPanel.width) / 2))
+                toolbarX + (editToolbar.width - slotWidth) / 2))
             popoverY = below
                 ? toolbarY + editToolbar.height + root._editPopoverGap
-                : stackY
+                : toolbarY - root._editPopoverGap - editPopoverPanel.height
+            popoverY = Math.max(topBound,
+                Math.min(bottomBound - editPopoverPanel.height, popoverY))
         }
         const toolbarInBounds = toolbarX >= leftBound && toolbarY >= topBound
             && toolbarX + editToolbar.width <= rightBound
@@ -631,6 +672,7 @@ AbstractWidget {
             widgetY: safeY,
             below: below,
             side: side,
+            naturalSide: natural,
             toolbarX: toolbarX,
             toolbarY: toolbarY,
             popoverX: popoverX,
@@ -639,35 +681,60 @@ AbstractWidget {
         };
     }
 
+    // Latched while the sheet is open: the edge it grew from, and the tallest
+    // page it has shown, so switching pages resizes the sheet without moving it.
+    property string _editPlacementSide: ""
+    property real _popoverReserve: 0
+    property real _popoverReserveWidth: 0
+    function _latchEditPlacement(): void {
+        const target = editPopoverPanel.targetHeight
+        if (target <= 0)
+            return
+        root._popoverReserve = Math.max(root._popoverReserve, target)
+        root._popoverReserveWidth = Math.max(root._popoverReserveWidth, editPopoverPanel.width)
+        if (root._editPlacementSide.length === 0)
+            root._editPlacementSide = root._editControlsGeometry.naturalSide
+    }
     readonly property var _editControlsGeometry: root._resolveEditControlsGeometry(
-        root.x, root.y, editPopoverPanel.open)
+        root.x, root.y, editPopoverPanel.open, root._editPlacementSide, root._popoverReserve,
+        root._popoverReserveWidth)
     readonly property bool _editControlsBelow: root._editControlsGeometry.below
 
-    // Loader containment masks consume this exact union instead of a huge
-    // per-widget rectangle. Overlapping widgets therefore follow visual z
-    // order, while the selected widget still owns its toolbar and popover.
+    function containsEditPoint(point: point): bool {
+        const inRect = (x, y, width, height) => point.x >= x && point.y >= y
+            && point.x < x + width && point.y < y + height
+        if (inRect(-12, -12, root.width + 24, root.height + 24))
+            return true
+        if (!root._editControlsShown)
+            return false
+        // Hit testing follows the rendered rectangles, not the animation's
+        // destination. Controls remain clickable while the widget reflows.
+        return inRect(editToolbar.x, editToolbar.y, editToolbar.width, editToolbar.height)
+            || (editPopoverPanel.open && inRect(editToolbar.x + editPopoverPanel.x,
+                editToolbar.y + editPopoverPanel.y, editPopoverPanel.width, editPopoverPanel.height))
+    }
+
     readonly property real editInputX: {
         if (!GlobalStates.widgetEditMode || !root._editControlsShown)
             return -8
-        const toolbarX = root._editControlsGeometry.toolbarX - root.x
-        const popoverX = root._editControlsGeometry.popoverX - root.x
+        const toolbarX = editToolbar.x
+        const popoverX = editToolbar.x + editPopoverPanel.x
         return Math.min(-8, toolbarX - 8,
             editPopoverPanel.open ? popoverX - 8 : 0)
     }
     readonly property real editInputY: {
         if (!GlobalStates.widgetEditMode || !root._editControlsShown)
             return -8
-        const toolbarY = root._editControlsGeometry.toolbarY - root.y
-        const popoverY = root._editControlsGeometry.popoverY - root.y
+        const toolbarY = editToolbar.y
+        const popoverY = editToolbar.y + editPopoverPanel.y
         return Math.min(-8, toolbarY - 8,
             editPopoverPanel.open ? popoverY - 8 : 0)
     }
     readonly property real editInputWidth: {
         if (!GlobalStates.widgetEditMode || !root._editControlsShown)
             return root.width + 16
-        const toolbarRight = root._editControlsGeometry.toolbarX - root.x
-            + editToolbar.width + 8
-        const popoverRight = root._editControlsGeometry.popoverX - root.x
+        const toolbarRight = editToolbar.x + editToolbar.width + 8
+        const popoverRight = editToolbar.x + editPopoverPanel.x
             + editPopoverPanel.width + 8
         return Math.max(root.width + 8, toolbarRight,
             editPopoverPanel.open ? popoverRight : 0) - root.editInputX
@@ -675,9 +742,8 @@ AbstractWidget {
     readonly property real editInputHeight: {
         if (!GlobalStates.widgetEditMode || !root._editControlsShown)
             return root.height + 16
-        const toolbarBottom = root._editControlsGeometry.toolbarY - root.y
-            + editToolbar.height + 8
-        const popoverBottom = root._editControlsGeometry.popoverY - root.y
+        const toolbarBottom = editToolbar.y + editToolbar.height + 8
+        const popoverBottom = editToolbar.y + editPopoverPanel.y
             + editPopoverPanel.height + 8
         return Math.max(root.height + 8, toolbarBottom,
             editPopoverPanel.open ? popoverBottom : 0) - root.editInputY
@@ -713,7 +779,8 @@ AbstractWidget {
         const requestedX = root.debugLayoutProbeActive ? root.debugLayoutProbeX : root.x;
         const requestedY = root.debugLayoutProbeActive ? root.debugLayoutProbeY : root.y;
         const geometry = root._resolveEditControlsGeometry(
-            requestedX, requestedY, editPopoverPanel.open);
+            requestedX, requestedY, editPopoverPanel.open,
+            root._editPlacementSide, root._popoverReserve, root._popoverReserveWidth);
         return JSON.stringify({
             widget: root.configEntryName,
             screen: { width: root.scaledScreenWidth, height: root.scaledScreenHeight },
@@ -755,7 +822,7 @@ AbstractWidget {
         }
         function onDesktopWidgetQuickControlsChanged(): void {
             if (GlobalStates.desktopWidgetQuickControls !== root.editInstanceKey
-                    || root.locked || root._effectivePopover === null)
+                    || (root.locked && !root.irisFaced) || root._effectivePopover === null)
                 return
             _editDisengageTimer.stop()
             root._editControlsShown = true
@@ -828,7 +895,7 @@ AbstractWidget {
     property real _snapPreviewY: _snapEnabled ? root._snapEditY(root.y) : root.y
     Rectangle {
         id: snapGhost
-        visible: root.containsPress && root._snapEnabled && root.draggable
+        visible: root.isDragging && root._snapEnabled && root.draggable
         x: root._snapPreviewX - root.x
         y: root._snapPreviewY - root.y
         width: root.width
@@ -847,7 +914,7 @@ AbstractWidget {
     readonly property bool _editEngaged: GlobalStates.widgetEditMode
         && (root.editSelected || toolbarEditHover.hovered
             || root.containsPress || root.isDragging || root._isResizing
-            || root._releaseGuard || editPopoverPanel.open
+            || editPopoverPanel.open
             || root.debugQuickControlsOpen)
     property bool _editControlsShown: false
     on_EditEngagedChanged: {
@@ -872,8 +939,25 @@ AbstractWidget {
     }
 
     onPressed: {
-        if (GlobalStates.widgetEditMode)
+        if (GlobalStates.widgetEditMode) {
             GlobalStates.selectDesktopWidget(root.editInstanceKey)
+            root.forceActiveFocus()
+        }
+    }
+
+    Keys.onPressed: event => {
+        if (!root.editSelected || event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))
+            return
+        const step = event.modifiers & Qt.ShiftModifier ? 10 : 1
+        if (event.key === Qt.Key_Escape) {
+            if (editPopoverPanel.open) editPopoverPanel.open = false
+            else GlobalStates.clearDesktopWidgetSelection()
+        } else if (event.key === Qt.Key_Left) root.nudge(-step, 0)
+        else if (event.key === Qt.Key_Right) root.nudge(step, 0)
+        else if (event.key === Qt.Key_Up) root.nudge(0, -step)
+        else if (event.key === Qt.Key_Down) root.nudge(0, step)
+        else return
+        event.accepted = true
     }
 
     // Locked widgets intentionally disable AbstractWidget's drag MouseArea.
@@ -882,7 +966,10 @@ AbstractWidget {
     TapHandler {
         enabled: GlobalStates.widgetEditMode && root.locked
         acceptedButtons: Qt.LeftButton
-        onTapped: GlobalStates.selectDesktopWidget(root.editInstanceKey)
+        onTapped: {
+            GlobalStates.selectDesktopWidget(root.editInstanceKey)
+            root.forceActiveFocus()
+        }
     }
 
     TapHandler {
@@ -890,7 +977,10 @@ AbstractWidget {
         acceptedButtons: Qt.RightButton
         onTapped: {
             GlobalStates.selectDesktopWidget(root.editInstanceKey)
-            widgetEditContextMenu.requestOpen()
+            if (root.irisFaced)
+                root.openQuickControls("arrange")
+            else
+                widgetEditContextMenu.requestOpen()
         }
     }
 
@@ -955,6 +1045,7 @@ AbstractWidget {
         z: 200
         visible: opacity > 0
         opacity: GlobalStates.widgetEditMode && root._editControlsShown ? 1 : 0
+        enabled: GlobalStates.widgetEditMode && root._editControlsShown
 
         HoverHandler {
             id: toolbarEditHover
@@ -962,8 +1053,8 @@ AbstractWidget {
         }
         x: root._editControlsGeometry.toolbarX - root.x
         y: root._editControlsGeometry.toolbarY - root.y
-        width: toolbarRow.implicitWidth + 16
-        height: 40
+        width: Math.min(root.quickControlsAvailableWidth, toolbarRow.naturalWidth + 16)
+        height: toolbarRow.implicitHeight + 16
 
         Behavior on x {
             enabled: Appearance.animationsEnabled
@@ -1003,183 +1094,76 @@ AbstractWidget {
             anchors.fill: parent
             padding: 0
             spacing: 0
+            transparent: root.widgetIris
             screenX: root.x + editToolbar.x
             screenY: root.y + editToolbar.y
         }
+        Rectangle {
+            anchors.fill: parent
+            visible: root.widgetIris
+            radius: height / 2
+            color: IrisStyle.surface
+            border.width: 1
+            border.color: IrisStyle.hairlineStrong
+        }
 
-        Row {
+        Flow {
             id: toolbarRow
             anchors.centerIn: parent
-            spacing: 2
+            readonly property real naturalWidth: lockAction.implicitWidth + moreAction.implicitWidth + 4
+                + (root.locked ? 0 : (layoutAction.visible ? layoutAction.implicitWidth + 4 : 0) + styleAction.implicitWidth + 4)
+            width: Math.min(root.quickControlsAvailableWidth - 16, naturalWidth)
+            spacing: 4
 
-            RippleButton {
-                id: lockBtn
-                width: 32; height: 32
-                buttonRadius: Appearance.rounding.full
+            WidgetEditAction {
+                id: lockAction
+                iconName: root.locked ? "lock" : "lock_open"
+                label: root.locked ? Translation.tr("Unlock") : Translation.tr("Lock")
+                compact: true
                 toggled: root.locked
-                colBackground: "transparent"
-                colBackgroundHover: ColorUtils.applyAlpha(Appearance.colors.colOnLayer2, 0.08)
-                colBackgroundToggled: ColorUtils.applyAlpha(Appearance.colors.colError, 0.14)
-                colBackgroundToggledHover: ColorUtils.applyAlpha(Appearance.colors.colError, 0.22)
-                colRipple: ColorUtils.applyAlpha(Appearance.colors.colOnLayer2, 0.12)
-                downAction: () => root._setOutputValue("locked", !root.locked)
-                contentItem: MaterialSymbol {
-                    anchors.centerIn: parent
-                    text: root.locked ? "lock" : "lock_open"
-                    iconSize: 18
-                    color: root.locked ? Appearance.colors.colError : Appearance.colors.colOnLayer2
-                }
-                StyledToolTip { text: root.locked ? Translation.tr("Unlock position") : Translation.tr("Lock position") }
+                onClicked: root._setOutputValue("locked", !root.locked)
             }
-
-            RippleButton {
-                visible: root.overlappingLayerCount > 1
-                width: 32; height: 32
-                buttonRadius: Appearance.rounding.full
-                colBackground: "transparent"
-                colBackgroundHover: ColorUtils.applyAlpha(Appearance.colors.colOnLayer2, 0.08)
-                colRipple: ColorUtils.applyAlpha(Appearance.colors.colOnLayer2, 0.12)
-                // Switch only after a completed click. `releaseAction` also runs
-                // on pointer cancellation, which previously changed layers when
-                // the press was dragged away from the button.
-                onClicked: Qt.callLater(() => root._cycleOverlappingWidget())
-                contentItem: MaterialSymbol {
-                    anchors.centerIn: parent
-                    text: "layers"
-                    iconSize: 18
-                    color: Appearance.colors.colOnLayer2
-                }
-                StyledToolTip {
-                    text: Translation.tr("Bring next overlapping widget forward (%1)")
-                        .arg(root.overlappingLayerCount)
+            WidgetEditAction {
+                id: layoutAction
+                visible: !root.locked && !root.irisFaced
+                iconName: "open_with"
+                label: Translation.tr("Layout")
+                compact: root.quickControlsAvailableWidth < 380
+                toggled: editPopoverPanel.open && root._quickTab === "layout"
+                onClicked: {
+                    const closing = toggled
+                    root._quickTab = "layout"
+                    editPopoverPanel.open = !closing
                 }
             }
-
-            RippleButton {
-                id: snapZoneBtn
+            WidgetEditAction {
+                id: styleAction
                 visible: !root.locked
-                width: placementStateRow.implicitWidth + 16; height: 32
-                buttonRadius: Appearance.rounding.full
-                toggled: root._isZonePlacement
-                colBackground: "transparent"
-                colBackgroundHover: ColorUtils.applyAlpha(Appearance.colors.colOnLayer2, 0.08)
-                colBackgroundToggled: ColorUtils.applyAlpha(Appearance.colors.colPrimary, 0.16)
-                colBackgroundToggledHover: ColorUtils.applyAlpha(Appearance.colors.colPrimary, 0.24)
-                colRipple: ColorUtils.applyAlpha(Appearance.colors.colOnLayer2, 0.12)
-                colRippleToggled: ColorUtils.applyAlpha(Appearance.colors.colPrimary, 0.16)
-                downAction: () => { root._toggleZonePlacement() }
-                altAction: () => { root._cycleSnapZone() }
-                contentItem: Row {
-                    id: placementStateRow
-                    anchors.centerIn: parent
-                    spacing: 4
-                    MaterialSymbol {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: root._isZonePlacement ? "grid_on" : "open_with"
-                        iconSize: 16
-                        color: root._isZonePlacement ? Appearance.colors.colPrimary : Appearance.colors.colOnLayer2
-                    }
-                    StyledText {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: root._isZonePlacement ? Translation.tr("Zone") : Translation.tr("Free")
-                        font.pixelSize: Appearance.font.pixelSize.smaller
-                        font.weight: Font.Medium
-                        color: root._isZonePlacement ? Appearance.colors.colPrimary : Appearance.colors.colOnLayer2
-                    }
-                }
-                StyledToolTip { text: root._isZonePlacement ? Translation.tr("Zone placement active — click for free placement, right-click to cycle") : Translation.tr("Attach this widget to the nearest screen zone") }
-            }
-
-            RippleButton {
-                id: resetBtn
-                property bool armed: false
-                visible: !root.locked
-                width: 32; height: 32
-                buttonRadius: Appearance.rounding.full
-                toggled: armed
-                colBackground: "transparent"
-                colBackgroundHover: ColorUtils.applyAlpha(Appearance.colors.colOnLayer2, 0.08)
-                colBackgroundToggled: ColorUtils.applyAlpha(root.widgetSignal, 0.16)
-                colBackgroundToggledHover: ColorUtils.applyAlpha(root.widgetSignal, 0.24)
-                colRipple: ColorUtils.applyAlpha(Appearance.colors.colOnLayer2, 0.12)
-                downAction: () => {
-                    if (resetBtn.armed) {
-                        resetBtn.armed = false
-                        resetConfirmTimer.stop()
-                        root.resetToDefaults()
-                    } else {
-                        resetBtn.armed = true
-                        resetConfirmTimer.restart()
-                    }
-                }
-                Timer {
-                    id: resetConfirmTimer
-                    interval: 2500
-                    onTriggered: resetBtn.armed = false
-                }
-                contentItem: MaterialSymbol {
-                    anchors.centerIn: parent
-                    text: resetBtn.armed ? "warning" : "restart_alt"
-                    iconSize: 18
-                    color: resetBtn.armed ? root.widgetSignal : Appearance.colors.colOnLayer2
-                }
-                StyledToolTip {
-                    text: resetBtn.armed
-                        ? Translation.tr("Click again to reset this widget")
-                        : Translation.tr("Reset to defaults")
+                iconName: "tune"
+                label: root.irisFaced ? Translation.tr("Edit") : Translation.tr("Style")
+                compact: root.quickControlsAvailableWidth < 380
+                toggled: editPopoverPanel.open && root._quickTab !== "layout" && root._quickTab !== "arrange"
+                onClicked: {
+                    if (toggled)
+                        root.closeQuickControls()
+                    else
+                        root.openQuickControls(root.irisFaced ? "widget" : root._widgetSpecificPopover !== null ? "widget" : "colors")
                 }
             }
-
-            Rectangle {
-                visible: !root.locked
-                width: 1; height: 20
-                anchors.verticalCenter: parent.verticalCenter
-                color: ColorUtils.applyAlpha(Appearance.colors.colOnLayer2, 0.15)
-            }
-
-            RippleButton {
-                id: popoverBtn
-                visible: root._effectivePopover !== null && !root.locked
-                width: 32; height: 32
-                buttonRadius: Appearance.rounding.full
-                toggled: editPopoverPanel.open
-                colBackground: "transparent"
-                colBackgroundHover: ColorUtils.applyAlpha(Appearance.colors.colOnLayer2, 0.08)
-                colBackgroundToggled: ColorUtils.applyAlpha(Appearance.colors.colPrimary, 0.16)
-                colBackgroundToggledHover: ColorUtils.applyAlpha(Appearance.colors.colPrimary, 0.24)
-                colRipple: ColorUtils.applyAlpha(Appearance.colors.colOnLayer2, 0.12)
-                downAction: () => { editPopoverPanel.open = !editPopoverPanel.open }
-                contentItem: MaterialSymbol {
-                    anchors.centerIn: parent
-                    text: "tune"
-                    iconSize: 18
-                    color: popoverBtn.toggled ? Appearance.colors.colPrimary : Appearance.colors.colOnLayer2
+            WidgetEditAction {
+                id: moreAction
+                iconName: "more_horiz"
+                label: Translation.tr("More actions")
+                compact: true
+                toggled: root.irisFaced && editPopoverPanel.open && root._quickTab === "arrange"
+                onClicked: {
+                    if (!root.irisFaced)
+                        widgetEditContextMenu.requestOpen()
+                    else if (toggled)
+                        root.closeQuickControls()
+                    else
+                        root.openQuickControls("arrange")
                 }
-                StyledToolTip { text: Translation.tr("Quick controls") }
-            }
-
-            RippleButton {
-                id: settingsBtn
-                width: 32; height: 32
-                buttonRadius: Appearance.rounding.full
-                colBackground: "transparent"
-                colBackgroundHover: ColorUtils.applyAlpha(Appearance.colors.colOnLayer2, 0.08)
-                colRipple: ColorUtils.applyAlpha(Appearance.colors.colOnLayer2, 0.12)
-                downAction: () => {
-                    if (Config.options?.settingsUi?.overlayMode !== false) {
-                        GlobalStates.settingsOverlayRequestedPage = 14
-                        GlobalStates.settingsOverlayOpen = true
-                    } else {
-                        Quickshell.execDetached(["/usr/bin/env", "QS_SETTINGS_PAGE=14", Quickshell.shellPath("scripts/inir"), "settings-window"])
-                    }
-                }
-                contentItem: MaterialSymbol {
-                    anchors.centerIn: parent
-                    text: "settings"
-                    iconSize: 18
-                    color: Appearance.colors.colOnLayer2
-                }
-                StyledToolTip { text: Translation.tr("Widget settings") }
             }
         }
 
@@ -1187,18 +1171,35 @@ AbstractWidget {
         Item {
             id: editPopoverPanel
             property bool open: false
+            readonly property real targetHeight: popoverLoader.item ? popoverLoader.item.implicitHeight + 24 : 0
             onOpenChanged: {
+                if (open) {
+                    root._latchEditPlacement()
+                } else {
+                    root._editPlacementSide = ""
+                    root._popoverReserve = 0
+                    root._popoverReserveWidth = 0
+                }
                 if (!open && GlobalStates.desktopWidgetQuickControls === root.editInstanceKey)
                     GlobalStates.desktopWidgetQuickControls = ""
             }
+            onTargetHeightChanged: if (open) root._latchEditPlacement()
+            onWidthChanged: if (open) root._latchEditPlacement()
             visible: opacity > 0
             enabled: open
             opacity: open ? 1 : 0
             x: root._editControlsGeometry.popoverX - root._editControlsGeometry.toolbarX
             y: root._editControlsGeometry.popoverY - root._editControlsGeometry.toolbarY
             width: Math.min(root.quickControlsAvailableWidth,
-                popoverLoader.item ? popoverLoader.item.implicitWidth + 16 : 200)
-            height: popoverLoader.item ? popoverLoader.item.implicitHeight + 16 : 0
+                popoverLoader.item ? (popoverLoader.item.resolvedWidth ?? popoverLoader.item.implicitWidth) + 24 : 344)
+            height: editPopoverPanel.targetHeight
+            Behavior on height {
+                enabled: root.animateGeometry && editPopoverPanel.open
+                NumberAnimation {
+                    duration: Appearance.animation.elementMove.duration
+                    easing.type: Easing.OutCubic
+                }
+            }
 
             Behavior on opacity {
                 enabled: Appearance.animationsEnabled
@@ -1231,14 +1232,23 @@ AbstractWidget {
                 propagateComposedEvents: false
             }
 
+            Rectangle {
+                anchors.fill: parent
+                visible: root.widgetIris
+                radius: Math.round(18 * IrisStyle.density)
+                color: IrisStyle.surface
+                border.width: 1
+                border.color: IrisStyle.hairlineStrong
+            }
             StyledRectangularShadow {
                 target: editPopoverSurface
-                visible: editPopoverPanel.open && !Appearance.zzzEverywhere && !Appearance.auroraEverywhere
+                visible: editPopoverPanel.open && !root.widgetIris
+                    && !Appearance.zzzEverywhere && !Appearance.auroraEverywhere
             }
-
             PanelSurface {
                 id: editPopoverSurface
                 anchors.fill: parent
+                visible: !root.widgetIris
                 elevation: 0
                 // Floats straight on the wallpaper like the widget manager panel:
                 // without a backdrop the aurora/angel fill is a hole, not glass.
@@ -1261,11 +1271,15 @@ AbstractWidget {
 
             Loader {
                 id: popoverLoader
-                anchors.centerIn: parent
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.margins: 12
+                width: editPopoverPanel.width - 24
                 sourceComponent: root._effectivePopover
                 // `visible` is effective visibility and inherits the parent chain;
                 // using it as Loader state can latch this popover unloaded forever.
-                active: editPopoverPanel.open && root._effectivePopover !== null
+                active: (editPopoverPanel.open || editPopoverPanel.opacity > 0)
+                    && root._effectivePopover !== null
             }
         }
     }
@@ -1273,9 +1287,8 @@ AbstractWidget {
     // ── Edit mode widget name label ─────────────────────────
     Row {
         z: 200
-        visible: GlobalStates.widgetEditMode
-        // Calm-state identity: selection is explicit; hover is only a preview.
-        opacity: root.editSelected ? 1 : widgetEditHover.hovered ? 0.78 : 0.46
+        visible: GlobalStates.widgetEditMode && (root.editSelected || widgetEditHover.hovered)
+        opacity: root.editSelected ? 1 : 0.78
         x: Math.round((root.width - width) / 2)
         y: root._editControlsBelow ? -height - 6 : root.height + 6
         spacing: 4
@@ -1320,9 +1333,15 @@ AbstractWidget {
 
         StyledText {
             anchors.verticalCenter: parent.verticalCenter
-            text: root.configEntryName.split(".").pop()
+            readonly property string name: root.configEntryName.split(".").pop().replace(/([A-Z])/g, " $1")
+            text: root.widgetIris ? root.widgetCase(name.toLowerCase()) : name
+            font.family: root.widgetBodyFamily
             font.pixelSize: Appearance.font.pixelSize.smaller
-            color: ColorUtils.applyAlpha(Appearance.colors.colOnLayer0, 0.5)
+            font.weight: root.widgetIris ? Font.DemiBold : Font.Normal
+            font.capitalization: root.widgetIris ? Font.MixedCase : Font.Capitalize
+            color: root.widgetIris ? IrisStyle.text : Appearance.colors.colOnLayer0
+            style: root.widgetIris ? Text.Raised : Text.Normal
+            styleColor: root.widgetIris ? IrisStyle.plateShadow : "transparent"
         }
     }
 
@@ -1331,17 +1350,16 @@ AbstractWidget {
         z: 199
         anchors.fill: parent
         anchors.margins: -4
-        visible: GlobalStates.widgetEditMode
+        visible: GlobalStates.widgetEditMode && (root.editSelected || widgetEditHover.hovered)
         color: "transparent"
-        radius: Appearance.rounding.small + 4
+        radius: root.widgetIris ? Math.round(root.widgetCardRadius * root.scaleFactor) + 4 : Appearance.rounding.small + 4
         border {
             width: root.editSelected || root.locked ? 2 : 1
-            color: root.locked
-                ? ColorUtils.applyAlpha(Appearance.colors.colError,
-                    root.editSelected ? 0.86 : 0.42)
-                : ColorUtils.applyAlpha(Appearance.colors.colPrimary,
-                    root.editSelected ? 0.88
-                        : widgetEditHover.hovered ? 0.62 : 0.26)
+            color: ColorUtils.applyAlpha(root.locked
+                    ? (root.widgetIris ? IrisStyle.danger : Appearance.colors.colError)
+                    : (root.widgetIris ? IrisStyle.accent : Appearance.colors.colPrimary),
+                root.locked ? (root.editSelected ? 0.86 : 0.42)
+                    : root.editSelected ? 0.88 : widgetEditHover.hovered ? 0.62 : 0.26)
         }
         Behavior on border.color {
             enabled: Appearance.animationsEnabled
@@ -1350,7 +1368,7 @@ AbstractWidget {
     }
 
     // ── Edit mode resize handles ─────────────────────────────
-    readonly property bool _hasResize: Object.keys(root.resizableAxes).length > 0
+    readonly property bool _hasResize: !root.irisFaced && Object.keys(root.resizableAxes).length > 0
     readonly property bool _resizeVisible: GlobalStates.widgetEditMode
         && root._hasResize && !root.locked && root._editControlsShown
 
@@ -1419,16 +1437,13 @@ AbstractWidget {
                 const axes = root.resizableAxes;
                 let vals = {};
                 if (axes.uniform) vals.uniform = Number(root._readConfigKey(axes.uniform) ?? 100);
-                if (axes.width) {
-                    const storedWidth = Number(root._readConfigKey(axes.width));
-                    vals.width = Number.isFinite(storedWidth) && storedWidth > 0
-                        ? storedWidth : Math.round(root.width / root.scaleFactor);
-                }
-                if (axes.height) {
-                    const storedHeight = Number(root._readConfigKey(axes.height));
-                    vals.height = Number.isFinite(storedHeight) && storedHeight > 0
-                        ? storedHeight : Math.round(root.height / root.scaleFactor);
-                }
+                // Axis dimensions are logical pixels. Start from the rendered
+                // frame, including a presentation's minimum, not a smaller saved
+                // card size. Merely switching style must not rewrite that size.
+                if (axes.width)
+                    vals.width = root.width / root.scaleFactor;
+                if (axes.height)
+                    vals.height = root.height / root.scaleFactor;
                 rh._startConfigVals = vals
                 root._resizePreviewValues = ({})
                 root._isResizing = true
@@ -1488,11 +1503,13 @@ AbstractWidget {
 
                 const preview = {}
                 if (isUniform) {
-                    const startSize = Math.max(rh._startWidth, rh._startHeight)
-                    const newSize = Math.max(newW, newH)
-                    const ratio = startSize > 0 ? newSize / startSize : 1
-                    preview[axes.uniform] = Math.round(
-                        rh._startConfigVals.uniform * ratio)
+                    const widthRatio = rh._startWidth > 0 ? newW / rh._startWidth : 1
+                    const heightRatio = rh._startHeight > 0 ? newH / rh._startHeight : 1
+                    const ratio = Math.abs(widthRatio - 1) >= Math.abs(heightRatio - 1)
+                        ? widthRatio : heightRatio
+                    const value = Math.round(rh._startConfigVals.uniform * ratio)
+                    preview[axes.uniform] = axes.uniform === "widgetScale"
+                        ? Math.max(50, Math.min(200, value)) : value
                 } else {
                     if (axes.width && (rh.resizeLeft || rh.resizeRight)) {
                         const ratio = rh._startWidth > 0 ? newW / rh._startWidth : 1
@@ -1507,9 +1524,9 @@ AbstractWidget {
                 }
                 root._resizePreviewValues = preview
                 if (rh.resizeLeft)
-                    root.x = root._clampX(newX)
+                    root.x = root._clampX(rh._startX + rh._startWidth - root.width)
                 if (rh.resizeTop)
-                    root.y = root._clampY(newY)
+                    root.y = root._clampY(rh._startY + rh._startHeight - root.height)
             }
 
             onReleased: {
@@ -1579,6 +1596,34 @@ AbstractWidget {
         resizeRight: true
     }
 
+    IrisSizeGrip {
+        z: 202
+        widget: root
+        visible: GlobalStates.widgetEditMode && root.irisFaced && root.irisSizes.length > 1 && !root.locked
+            && (root.editSelected || widgetEditHover.hovered || root._irisSizing)
+    }
+
+    function commitIrisSize(size: string): void {
+        root._resizePreviewValues = ({})
+        root._irisSizing = false
+        if (size !== String(root._readConfigKey("iris.size") ?? ""))
+            root.setIrisOption("size", size)
+        _irisSizeSettle.restart()
+    }
+    Timer {
+        id: _irisSizeSettle
+        interval: IrisStyle.morphDuration + 40
+        onTriggered: {
+            if (root._isZonePlacement)
+                root.snapToZone(root.placementStrategy)
+            else if (root.placementStrategy === "free"
+                    && (Math.round(root._clampX(root.x)) !== Math.round(root.x) || Math.round(root._clampY(root.y)) !== Math.round(root.y)))
+                root._setOutputValues({ x: Math.round(root._clampX(root.x)), y: Math.round(root._clampY(root.y)) })
+            if (root.irisReadsRegion)
+                _placementDebounce.restart()
+        }
+    }
+
     ShellEditSizeBadge {
         z: 203
         anchors.centerIn: parent
@@ -1592,21 +1637,9 @@ AbstractWidget {
     }
 
     onReleased: {
-        if (GlobalStates.screenLocked) return;
-        // Suppress _autoPosition Binding for a frame so it doesn't snap back
-        root._releaseGuard = true;
-        _releaseGuardTimer.restart();
-
+        if (GlobalStates.screenLocked || !root.dragMoved) return;
         let newX = root.x;
         let newY = root.y;
-
-        // In edit mode: zone-placed widgets re-snap to nearest zone
-        if (GlobalStates.widgetEditMode && root._isZonePlacement) {
-            const nearest = root._nearestZone(newX, newY);
-            root.snapToZone(nearest);
-            if (root.needsColText) _placementDebounce.restart();
-            return;
-        }
 
         if (root._snapEnabled) {
             newX = root._snapEditX(newX)
@@ -1620,7 +1653,7 @@ AbstractWidget {
         if (root.placementStrategy !== "free")
             updates.placementStrategy = "free"
         root._setOutputValues(updates)
-        if (root.needsColText) _placementDebounce.restart();
+        if (root.needsColText || root.irisReadsRegion) _placementDebounce.restart();
     }
 
     // ── Inline popover for quick controls ─────────────────────
@@ -1638,9 +1671,23 @@ AbstractWidget {
     property Component _autoPopoverComponent: _manifestKeyList.length > 0 ? _autoPopoverRef : null
     readonly property Component _widgetSpecificPopover: root.editPopoverContent
         ?? (root._manifestKeyList.length > 0 ? root._autoPopoverComponent : null)
-    readonly property Component _effectivePopover:
-        root._widgetSpecificPopover !== null || root.semanticPaletteControls
-            ? root._semanticPalettePopover : null
+    property string _quickTab: "widget"
+    readonly property Component _effectivePopover: root.irisFaced ? _irisPopoverRef : root._semanticPalettePopover
+
+    function openQuickControls(tab: string): void {
+        root._quickTab = tab
+        _editDisengageTimer.stop()
+        root._editControlsShown = true
+        editPopoverPanel.open = true
+    }
+    function closeQuickControls(): void {
+        editPopoverPanel.open = false
+    }
+
+    Component {
+        id: _irisPopoverRef
+        IrisWidgetControls { widget: root }
+    }
 
     Component {
         id: _autoPopoverRef
@@ -1654,14 +1701,71 @@ AbstractWidget {
     property Component _semanticPalettePopover: Component {
         WidgetQuickControlsLayout {
             id: semanticQuickRoot
-            availableWidth: root.quickControlsAvailableWidth - 16
-            availableHeight: root.quickControlsAvailableHeight - 16
-            regularWidth: Math.max(244,
+            availableWidth: root.quickControlsAvailableWidth - 24
+            availableHeight: root.quickControlsAvailableHeight - 24
+            title: root.configEntryName.split(".").pop().replace(/([A-Z])/g, " $1")
+            regularWidth: Math.max(360,
                 specificQuickLoader.item?.implicitWidth ?? 0)
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+                Repeater {
+                    model: [
+                        {key: "widget", icon: "widgets", label: Translation.tr("Widget"), available: root._widgetSpecificPopover !== null},
+                        {key: "layout", icon: "open_with", label: Translation.tr("Layout"), available: true},
+                        {key: "colors", icon: "palette", label: Translation.tr("Colors"), available: root.semanticPaletteQuickControls}
+                    ]
+                    WidgetEditAction {
+                        required property var modelData
+                        visible: modelData.available
+                        Layout.fillWidth: true
+                        compact: semanticQuickRoot.resolvedWidth < 300
+                        iconName: modelData.icon
+                        label: modelData.label
+                        toggled: root._quickTab === modelData.key
+                        onClicked: root._quickTab = modelData.key
+                    }
+                }
+            }
+
+            RowLayout {
+                visible: root.widgetIrisFamily && root.irisFace !== null
+                Layout.fillWidth: true
+                spacing: 6
+
+                StyledText {
+                    text: Translation.tr("Design")
+                    color: Appearance.colors.colSubtext
+                    font.pixelSize: Appearance.font.pixelSize.smaller
+                }
+                Repeater {
+                    model: [
+                        {key: "iris", icon: "auto_awesome", label: Translation.tr("iRiS")},
+                        {key: "material", icon: "widgets", label: Translation.tr("Material")}
+                    ]
+                    WidgetEditAction {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        compact: semanticQuickRoot.resolvedWidth < 300
+                        iconName: modelData.icon
+                        label: modelData.label
+                        toggled: root.irisDesign === modelData.key
+                        onClicked: root._setOutputValue("iris.design", modelData.key)
+                    }
+                }
+            }
+
+            WidgetPlacementControls {
+                Layout.fillWidth: true
+                visible: root._quickTab === "layout" || (root._quickTab === "widget" && root._widgetSpecificPopover === null)
+                widget: root
+                wide: semanticQuickRoot.wideDense
+            }
 
             Loader {
                 id: specificQuickLoader
-                active: root._widgetSpecificPopover !== null
+                active: root._widgetSpecificPopover !== null && root._quickTab === "widget"
                 visible: active
                 sourceComponent: root._widgetSpecificPopover
                 Layout.fillWidth: true
@@ -1669,7 +1773,7 @@ AbstractWidget {
             }
 
             Rectangle {
-                visible: root._widgetSpecificPopover !== null && root.semanticPaletteQuickControls
+                visible: false
                 Layout.fillWidth: true
                 implicitHeight: visible ? 1 : 0
                 color: ColorUtils.applyAlpha(Appearance.colors.colOnLayer2, 0.10)
@@ -1677,7 +1781,7 @@ AbstractWidget {
 
             ColumnLayout {
                 id: paletteQuickSection
-                visible: root.semanticPaletteQuickControls
+                visible: root.semanticPaletteQuickControls && root._quickTab === "colors"
                 Layout.fillWidth: true
                 spacing: 6
 
@@ -1694,7 +1798,7 @@ AbstractWidget {
                         text: Translation.tr("Colors")
                         color: Appearance.colors.colOnLayer2
                         font.pixelSize: Appearance.font.pixelSize.smaller
-                        font.weight: Font.Medium
+                        font.weight: root.widgetLabelWeight
                     }
                     Item { Layout.fillWidth: true }
                     StyledText {
@@ -1796,7 +1900,7 @@ AbstractWidget {
 
     // Read a possibly-nested key from configEntry (e.g. "cookie.size" → configEntry.cookie.size)
     function _readConfigKey(key: string): var {
-        if (root._isResizing
+        if ((root._isResizing || root._irisSizing || root._irisPreviewing)
                 && Object.prototype.hasOwnProperty.call(root._resizePreviewValues, key))
             return root._resizePreviewValues[key]
         return DesktopWidgetLayout.value(root.outputName, root.configEntryName,
@@ -1819,41 +1923,37 @@ AbstractWidget {
             Config.setNestedValues(updates);
     }
     Component.onCompleted: {
+        Qt.callLater(() => root._geometryReady = true)
         _seedDefaultsIfNeeded();
         root._syncPlacementStrategy();
         Qt.callLater(root.applyPlacementFromConfig);
     }
     function resetToDefaults(): void {
-        const prefix = root._configPath;
-        const defaults = root.defaultConfig;
         const updates = {};
-        for (const key in defaults) {
-            // Resetting a visible widget must not make it disappear or change
-            // the lock state that guards this action. Those are lifecycle and
-            // interaction controls, not visual defaults.
-            if (key === "enable" || key === "locked")
-                continue;
-            updates[prefix + "." + key] = defaults[key];
+        for (const key in root.defaultConfig) {
+            // Reset the selected instance, not its siblings on other outputs.
+            // Keep the lifecycle and lock controls intact.
+            if (key !== "enable" && key !== "locked")
+                updates[key] = root.defaultConfig[key];
         }
-        updates[prefix + ".palette.primary"] = "primary"
-        updates[prefix + ".palette.secondary"] = "secondary"
-        updates[prefix + ".palette.tertiary"] = "tertiary"
-        updates[prefix + ".palette.signal"] = "signal"
-        updates[prefix + ".palette.surface"] = "surface"
-        Config.setNestedValues(updates);
-        const layoutKeys = ["locked", "placementStrategy", "x", "y", "widgetScale",
-            "palette.primary", "palette.secondary", "palette.tertiary", "palette.signal", "palette.surface"]
-        for (const axis of Object.keys(root.resizableAxes ?? {})) {
-            const key = String(root.resizableAxes[axis] ?? "")
-            if (key.length > 0 && !layoutKeys.includes(key))
-                layoutKeys.push(key)
+        updates["palette.primary"] = "primary"
+        updates["palette.secondary"] = "secondary"
+        updates["palette.tertiary"] = "tertiary"
+        updates["palette.signal"] = "signal"
+        updates["palette.surface"] = "surface"
+        if (root.widgetIrisFamily && root.irisFace !== null) {
+            updates["iris.size"] = root.irisDefaultSize
+            updates["iris.material"] = "auto"
+            updates["iris.design"] = "auto"
+            updates["iris.opacity"] = -1
         }
-        DesktopWidgetLayout.clearValues(root.outputName, root.configEntryName, layoutKeys)
+        root._setOutputValues(updates);
         syncFreePositionFromConfig();
         refreshPlacementIfNeeded();
     }
 
     property bool needsColText: false
+    readonly property bool _regionSampling: (root.positionColorAdaptationEnabled && root.needsColText) || root.irisReadsRegion
     readonly property bool positionColorAdaptationEnabled: Boolean(
         Config.getNestedValue("background.widgets.adaptColorsToWallpaperPosition", false))
     // Opt-in for widgets whose bare content changes ink with the wallpaper under
@@ -1917,11 +2017,11 @@ AbstractWidget {
     // Every built-in widget selects from the palette already generated by the
     // wallpaper/theme. Local region analysis may choose WHICH generated token is
     // readable, but never synthesizes a new hue/lightness variant.
-    readonly property string widgetPrimaryRole: String(Config.getNestedValue(root._configPath + ".palette.primary", "primary"))
-    readonly property string widgetSecondaryRole: String(Config.getNestedValue(root._configPath + ".palette.secondary", "secondary"))
-    readonly property string widgetTertiaryRole: String(Config.getNestedValue(root._configPath + ".palette.tertiary", "tertiary"))
-    readonly property string widgetSignalRole: String(Config.getNestedValue(root._configPath + ".palette.signal", "signal"))
-    readonly property string widgetSurfaceRole: String(Config.getNestedValue(root._configPath + ".palette.surface", "surface"))
+    readonly property string widgetPrimaryRole: String(root._readConfigKey("palette.primary") ?? "primary")
+    readonly property string widgetSecondaryRole: String(root._readConfigKey("palette.secondary") ?? "secondary")
+    readonly property string widgetTertiaryRole: String(root._readConfigKey("palette.tertiary") ?? "tertiary")
+    readonly property string widgetSignalRole: String(root._readConfigKey("palette.signal") ?? "signal")
+    readonly property string widgetSurfaceRole: String(root._readConfigKey("palette.surface") ?? "surface")
 
     readonly property var widgetPalettePresets: [
         { value: "balanced", label: Translation.tr("Default"), roles: ["primary", "secondary", "tertiary"] },
@@ -1967,17 +2067,123 @@ AbstractWidget {
 
     function applyWidgetPalettePreset(preset: string): void {
         const spec = root.widgetPalettePresetSpec(preset);
-        const prefix = root._configPath + ".palette.";
-        const updates = {};
-        updates[prefix + "primary"] = spec.primary;
-        updates[prefix + "secondary"] = spec.secondary;
-        updates[prefix + "tertiary"] = spec.tertiary;
-        updates[prefix + "signal"] = spec.signal;
-        updates[prefix + "surface"] = spec.surface;
-        Config.setNestedValues(updates);
+        root._setOutputValues({
+            "palette.primary": spec.primary,
+            "palette.secondary": spec.secondary,
+            "palette.tertiary": spec.tertiary,
+            "palette.signal": spec.signal,
+            "palette.surface": spec.surface
+        });
+    }
+
+    // iRiS widgets keep the black Island material but can borrow the wallpaper:
+    // its generated hues are lifted into a range that reads on black, and the
+    // plate can carry a trace of the same hue. Greyscale seeds keep iRiS blue.
+    readonly property var irisWidgetOptions: Config.options?.iris?.widgets ?? ({})
+    readonly property bool irisRim: Boolean(root.irisWidgetOptions.rim ?? false)
+    readonly property real irisSurfaceOpacity: {
+        const own = Number(root._readConfigKey("iris.opacity") ?? -1)
+        const value = own >= 20 ? own : Number(root.irisWidgetOptions.opacity ?? 100)
+        return Math.max(0, Math.min(100, Number.isFinite(value) ? value : 100)) / 100
+    }
+    readonly property bool irisWallpaperTint: String(root.irisWidgetOptions.tint ?? "wallpaper") === "wallpaper"
+    readonly property color irisAccent: root.irisWallpaperTint
+        ? IrisStyle.legibleAccent(Appearance.colors.colPrimary, IrisStyle.accent) : IrisStyle.accent
+    readonly property color irisAccent2: root.irisWallpaperTint
+        ? IrisStyle.legibleAccent(Appearance.colors.colSecondary, IrisStyle.success) : IrisStyle.success
+    readonly property color irisAccent3: root.irisWallpaperTint
+        ? IrisStyle.legibleAccent(Appearance.colors.colTertiary, IrisStyle.secondaryAccent) : IrisStyle.secondaryAccent
+    readonly property color irisTintedPlate: ColorUtils.mix(IrisStyle.surface, root.irisAccent, 0.82)
+    readonly property color irisPlate: root.irisMaterial === "tinted" ? root.irisTintedPlate : IrisStyle.surface
+
+    property Component irisFace: null
+    property bool irisOnly: false
+    readonly property var irisDesigns: ["iris", "material"]
+    readonly property string irisDesign: {
+        if (root.irisOnly)
+            return "iris"
+        const own = String(root._readConfigKey("iris.design") ?? "auto")
+        if (root.irisDesigns.includes(own))
+            return own
+        const shared = String(root.irisWidgetOptions.design ?? "iris")
+        return root.irisDesigns.includes(shared) ? shared : "iris"
+    }
+    property var irisSizes: ["small"]
+    property string irisDefaultSize: root.irisSizes[0]
+    property var irisOptions: []
+    readonly property bool irisFaced: root.widgetIris && root.irisFace !== null
+    readonly property var irisMaterials: ["glass", "clear", "solid", "tinted"]
+    readonly property string irisMaterial: {
+        const own = String(root._readConfigKey("iris.material") ?? "auto")
+        const shared = String(root.irisWidgetOptions.material ?? "glass")
+        return root.irisMaterials.includes(own) ? own : root.irisMaterials.includes(shared) ? shared : "glass"
+    }
+    readonly property bool irisReadsRegion: root.irisFaced && (root.irisMaterial === "glass" || root.irisMaterial === "clear")
+    onIrisReadsRegionChanged: if (root.irisReadsRegion) _placementDebounce.restart()
+    onIrisSizeChanged: if (root.irisReadsRegion && !root._irisSizing) _placementDebounce.restart()
+    readonly property string irisSize: {
+        const chosen = String(root._readConfigKey("iris.size") ?? "")
+        return root.irisSizes.includes(chosen) ? chosen : root.irisDefaultSize
+    }
+    readonly property real irisUnit: Math.round(170 * IrisStyle.density * root.scaleFactor)
+    readonly property real irisGutter: Math.round(16 * IrisStyle.density * root.scaleFactor)
+    readonly property real irisFaceWidth: root.irisSize === "small" ? root.irisUnit : root.irisUnit * 2 + root.irisGutter
+    readonly property real irisFaceHeight: root.irisSize === "large" ? root.irisUnit * 2 + root.irisGutter : root.irisUnit
+    readonly property var irisSizeLabels: ({ small: Translation.tr("Small"), medium: Translation.tr("Medium"), large: Translation.tr("Large") })
+    function irisOption(key: string, fallback: var): var {
+        const value = root._readConfigKey("iris." + key)
+        return value === undefined || value === null ? fallback : value
+    }
+    function setIrisOption(key: string, value: var): void {
+        root._setOutputValue("iris." + key, value)
+    }
+    function previewIrisScale(percent: int): void {
+        root._resizePreviewValues = ({ widgetScale: percent })
+        root._irisSizing = true
+    }
+    function previewIrisValue(key: string, value: var): void {
+        const preview = ({})
+        preview[key] = value
+        root._resizePreviewValues = preview
+        root._irisPreviewing = true
+    }
+    function commitIrisValue(key: string, value: var): void {
+        root._setOutputValue(key, value)
+        _irisPreviewSettle.restart()
+    }
+    Timer {
+        id: _irisPreviewSettle
+        interval: 140
+        onTriggered: {
+            root._resizePreviewValues = ({})
+            root._irisPreviewing = false
+        }
+    }
+    function commitIrisScale(percent: int): void {
+        if (percent !== Math.round(root._baseScale * 100) || root._irisSizing)
+            root._setOutputValue("widgetScale", percent)
+        root.commitIrisSize(root.irisSize)
+    }
+
+    Loader {
+        id: irisFaceLoader
+        anchors.fill: parent
+        active: root.irisFaced
+        sourceComponent: root.irisFace
     }
 
     function widgetSemanticSet(role: string): var {
+        if (root.widgetIris) {
+            const foreground = role === "surface" ? IrisStyle.text
+                : role === "signal" ? IrisStyle.danger
+                : role === "success" ? IrisStyle.success
+                : role === "warning" ? IrisStyle.secondaryAccent
+                : role === "tertiary" ? root.irisAccent3
+                : role === "secondary" ? root.irisAccent2 : root.irisAccent;
+            return { color: foreground, onColor: IrisStyle.surface,
+                container: role === "surface" ? root.irisPlate : ColorUtils.mix(root.irisPlate, IrisStyle.text, 0.9),
+                onContainer: IrisStyle.text };
+        }
         const c = Appearance.colors;
         switch (role) {
         case "secondary":
@@ -2034,21 +2240,58 @@ AbstractWidget {
     readonly property color widgetAccent2: root.widgetSemanticColor(root.widgetSecondaryRole)
     readonly property color widgetAccent3: root.widgetSemanticColor(root.widgetTertiaryRole)
     readonly property color widgetSignal: root.widgetSemanticColor(root.widgetSignalRole)
-    readonly property bool widgetHasSurface: root.backgroundOpacity > 0 || root.effectiveBlur
+    // Presentation owns whether the configured plate is actually rendered.
+    // Borderless variants must sample wallpaper, even when the saved card is on.
+    property bool widgetSurfaceEnabled: true
+    readonly property bool widgetHasSurface: root.widgetSurfaceEnabled
+        && (root.backgroundOpacity > 0 || root.effectiveBlur)
     readonly property bool regionIsBright: root.positionColorAdaptationEnabled && root._hasBrightness
         ? root.regionBrightness > 0.55 : !Appearance.m3colors.darkmode
 
     // Surfaces use semantic containers directly. This removes the old HSL
     // wallpaper-region re-toning that could turn generated warm palettes muddy.
-    readonly property color widgetPlateColor: root.widgetSemanticContainer(root.widgetSurfaceRole)
+    readonly property color widgetPlateColor: root.widgetIris && root.forceDarkInk
+        ? ColorUtils.mix(IrisStyle.text, IrisStyle.accent, 0.98)
+        : root.widgetIris && root.forceLightInk ? IrisStyle.surface
+        : root.widgetSemanticContainer(root.widgetSurfaceRole)
     readonly property bool widgetPlateIsDark: ColorUtils.relativeLuminance(root.widgetPlateColor) < 0.38
     readonly property color widgetSurfaceInk: root.forceLightInk ? root._inkLight
         : root.forceDarkInk ? root._inkDark
         : root.widgetSemanticOnContainer(root.widgetSurfaceRole)
     readonly property color widgetInk: root.widgetHasSurface ? root.widgetSurfaceInk : root.colText
-    readonly property color widgetInkMuted: ColorUtils.applyAlpha(root.widgetInk, 0.66)
+    readonly property color widgetInkMuted: root.widgetEditorial && root.widgetHasSurface && !root.forceLightInk && !root.forceDarkInk
+        ? ColorUtils.ensureReadable(ColorUtils.mix(root.widgetInk, root.widgetPlateColor, 0.72), root.widgetPlateColor, 4.5)
+        : ColorUtils.applyAlpha(root.widgetInk, 0.66)
     readonly property color widgetInkSubtle: ColorUtils.applyAlpha(root.widgetInk, 0.58)
-    readonly property real widgetCardRadius: Appearance.zzzEverywhere ? Appearance.zzz.controlRadius
+    readonly property bool widgetEditorial: !root.widgetIris && Appearance.editorialEverywhere
+    // Family-owned type: iRiS widgets speak the Island's typeface; every other
+    // family keeps the shell fonts it always used.
+    readonly property string widgetBodyFamily: root.widgetIris ? IrisStyle.fontMain : Appearance.font.family.main
+    readonly property string widgetNumbersFamily: root.widgetIris ? IrisStyle.fontNumbers : Appearance.font.family.numbers
+    // Metadata labels: shouting caps are Material/Instrument grammar; iRiS uses
+    // sentence case (first letter up, the rest as written by the locale).
+    function widgetCase(text): string {
+        const value = String(text ?? "")
+        return root.widgetIris ? value.charAt(0).toUpperCase() + value.slice(1) : value.toUpperCase()
+    }
+    readonly property int widgetCapitalization: root.widgetIris ? Font.MixedCase : Font.AllUppercase
+    readonly property string widgetTitleFamily: root.widgetIris ? IrisStyle.fontMain : root.widgetEditorial
+        ? Appearance.editorial.displayFamily : Appearance.font.family.main
+    // iRiS display type: one chosen weight for titles and figures, with the
+    // slight negative tracking large system numerals use.
+    readonly property int widgetTitleWeight: root.widgetIris
+        ? ({ light: Font.Light, regular: Font.Medium, bold: Font.Bold })[String(root.irisWidgetOptions.weight ?? "regular")] ?? Font.Medium
+        : root.widgetEditorial ? Appearance.editorial.titleWeight : Font.DemiBold
+    readonly property real widgetTitleTracking: root.widgetIris ? -0.4
+        : root.widgetEditorial ? Appearance.editorial.titleTracking : 0
+    readonly property real widgetTitleScale: root.widgetEditorial
+        ? Appearance.editorial.titleScale : 1
+    readonly property real widgetSpacingScale: root.widgetEditorial
+        ? Appearance.editorial.spacing : 1
+    readonly property int widgetLabelWeight: root.widgetEditorial ? Appearance.editorial.labelWeight : Font.Medium
+    readonly property real widgetMetadataTracking: root.widgetEditorial ? Appearance.editorial.metadataTracking : 0
+    readonly property real widgetControlRadius: root.widgetIris ? Math.round(12 * IrisStyle.density) : root.widgetEditorial ? Appearance.rounding.small : Appearance.rounding.normal
+    readonly property real widgetCardRadius: root.widgetIris ? Math.round(Math.max(0, Math.min(40, Config.options?.iris?.widgets?.radius ?? 22)) * IrisStyle.density) : root.widgetEditorial ? Appearance.editorial.radius : Appearance.zzzEverywhere ? Appearance.zzz.controlRadius
         : Appearance.cookieEverywhere ? Appearance.cookie.roundLarge
         : Appearance.angelEverywhere ? Appearance.angel.roundingNormal
         : Appearance.inirEverywhere ? Appearance.inir.roundingNormal
@@ -2118,8 +2361,7 @@ AbstractWidget {
         root.regionBrightness = -1
         root.regionBrightnessSpread = 0
         if (root.wallpaperPath.length > 0
-                && (root._isAutoPlacement
-                    || (root.positionColorAdaptationEnabled && root.needsColText)))
+                && (root._isAutoPlacement || root._regionSampling))
             _placementDebounce.restart()
     }
     onPositionColorAdaptationEnabledChanged: {
@@ -2130,8 +2372,7 @@ AbstractWidget {
         _liveColorAnalysisTimer.stop()
         if (colorOnlyProc.running)
             colorOnlyProc.running = false
-        if (root.positionColorAdaptationEnabled && root.needsColText
-                && root.wallpaperPath.length > 0)
+        if (root._regionSampling && root.wallpaperPath.length > 0)
             _placementDebounce.restart()
     }
     // Widgets may gate needsColText on runtime state (e.g. mascot only when its
@@ -2141,6 +2382,10 @@ AbstractWidget {
     onXChanged: root._queueLiveColorAnalysis()
     onYChanged: root._queueLiveColorAnalysis()
     onIsDraggingChanged: {
+        // A sheet that chases the widget across the screen re-decides its edge
+        // on every frame of the drag. Moving the widget puts it away instead.
+        if (root.isDragging && editPopoverPanel.open)
+            root.closeQuickControls()
         if (!root.positionColorAdaptationEnabled
                 || !root.liveColorTracking || !root.needsColText)
             return;
@@ -2172,13 +2417,16 @@ AbstractWidget {
     Timer {
         id: _zoneResnapDebounce
         interval: 100; repeat: false
-        onTriggered: root.snapToZone(root.placementStrategy)
+        onTriggered: {
+            if (root._isZonePlacement && !root.containsPress && !root._isResizing && !root._irisSizing)
+                root.snapToZone(root.placementStrategy)
+        }
     }
     Timer {
         id: _geometryPlacementDebounce
         interval: 120; repeat: false
         onTriggered: {
-            if (!Config.ready || root.containsPress || root._isResizing)
+            if (!Config.ready || root.containsPress || root._isResizing || root._irisSizing)
                 return;
             if (root._isZonePlacement)
                 root.snapToZone(root.placementStrategy);
@@ -2245,8 +2493,7 @@ AbstractWidget {
             leastBusyRegionProc.running = true;
             return;
         }
-        // For free/zone widgets, local color analysis is an explicit global opt-in.
-        if (root.positionColorAdaptationEnabled && root.needsColText)
+        if (root._regionSampling)
             root._runColorAnalysis();
     }
 
@@ -2268,7 +2515,7 @@ AbstractWidget {
     function _colorTargetHeight(): int { return Math.max(1, Math.round(root.height / Math.max(root.wallpaperScale, 0.001))); }
 
     function _runColorAnalysis(): void {
-        if (!root.positionColorAdaptationEnabled || !root.needsColText)
+        if (!root._regionSampling)
             return;
         if (colorOnlyProc.running) {
             root._colorRerunQueued = true;
@@ -2311,7 +2558,7 @@ AbstractWidget {
                     if (Quickshell.env("INIR_REGION_DEBUG") === "1")
                         console.log("[Region]", root.configEntryName, "LEAST-BUSY landed",
                             "dom", parsedContent.dominant_color, "bright", parsedContent.brightness);
-                    if (root.positionColorAdaptationEnabled) {
+                    if (root.positionColorAdaptationEnabled || root.irisReadsRegion) {
                         root.dominantColor = parsedContent.dominant_color || Appearance.colors.colPrimary;
                         if (parsedContent.brightness !== undefined)
                             root.regionBrightness = parsedContent.brightness / 255.0;
@@ -2353,7 +2600,7 @@ AbstractWidget {
         stdout: StdioCollector {
             id: colorOnlyOutputCollector
             onStreamFinished: {
-                if (!root.positionColorAdaptationEnabled) return;
+                if (!root._regionSampling) return;
                 const output = colorOnlyOutputCollector.text;
                 if (output.length === 0) return;
                 try {
@@ -2396,7 +2643,7 @@ AbstractWidget {
         // Runs are serialised, so a request that arrived while this one was busy —
         // or a result thrown away as stale — is picked up here, once, at the
         // position the widget actually ended up at.
-        onExited: if (root.positionColorAdaptationEnabled && root._colorRerunQueued)
+        onExited: if (root._regionSampling && root._colorRerunQueued)
             Qt.callLater(root._runColorAnalysis)
     }
 }

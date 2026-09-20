@@ -39,7 +39,7 @@ def main():
             ET.parse(p)
         elif suffix == '.fish':
             run(['fish', '-n', str(p)])
-        elif suffix == '.sh' or p.name in ['dot_bashrc', 'dot_bash_profile', 'dot_profile', 'dot_zprofile']:
+        elif suffix == '.sh' or p.name in ['executable_inir', 'dot_bashrc', 'dot_bash_profile', 'dot_profile', 'dot_zprofile']:
             run(['bash', '-n', str(p)])
         elif suffix in ['.frag', '.vert']:
             run(['glslangValidator', str(p)])

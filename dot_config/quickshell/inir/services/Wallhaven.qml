@@ -56,7 +56,7 @@ QtObject {
     property string _lastTagSuggestionProvider: "wallhaven"
     property var _lastTagSuggestions: ([])
 
-    readonly property var wallpaperProviderIds: ["wallhaven", "commons", "konachan", "yandere"]
+    readonly property var wallpaperProviderIds: ["wallhaven", "commons", "konachan", "yandere", "motionbgs"]
 
     function _normalizedProvider(providerId): string {
         return root.wallpaperProviderIds.includes(providerId) ? providerId : "wallhaven"
@@ -84,6 +84,11 @@ QtObject {
     property int minSearchIntervalMs: 1200
     property int minTagIntervalMs: 1200
     property real _nextSearchAllowedMs: 0
+
+    function _curlGetArgs(maxTime: int): var {
+        return ["/usr/bin/curl", "-s", "--max-time", String(maxTime),
+            "--retry", "2", "--retry-delay", "1", "--retry-max-time", "8"]
+    }
 
     property Timer _pendingSearchTimer: Timer {
         interval: Math.max(0, root._nextSearchAllowedMs - root.nowMs)
@@ -328,7 +333,8 @@ QtObject {
 
         const url = root.apiSearchEndpoint + "?q=" + encodeURIComponent("id:" + id) + "&page=1&per_page=1&categories=111&purity=100&sorting=date_added&order=desc" + ((apiKey && apiKey.length > 0) ? ("&apikey=" + encodeURIComponent(apiKey)) : "")
         _log("[Wallhaven] Fetching tag count for", id)
-        root.tagCountProcess.command = ["/usr/bin/curl", "-s", "--max-time", "15", "-H", "User-Agent: " + defaultUserAgent, url]
+        root.tagCountProcess.command = root._curlGetArgs(15).concat([
+            "-H", "User-Agent: " + defaultUserAgent, url])
         root.tagCountProcess.running = true
     }
 
@@ -412,7 +418,8 @@ QtObject {
         root._tagSuggestionPreferQuoted = preferQuoted
 
         _log("[Wallhaven] Fetching", requestedProvider, "tag suggestions for", q)
-        const command = ["/usr/bin/curl", "-s", "--globoff", "--max-time", "15"]
+        const command = root._curlGetArgs(15)
+        command.push("--globoff")
         if (requestedProvider === "wallhaven")
             command.push("-H", "User-Agent: " + defaultUserAgent)
         else if (requestedProvider === "waifu.im")
@@ -537,7 +544,8 @@ QtObject {
 
         const url = _detailUrl(id)
         _log("[Wallhaven] Fetching wallpaper tags for", id)
-        root.tagDetailProcess.command = ["/usr/bin/curl", "-s", "--max-time", "15", "-H", "User-Agent: " + defaultUserAgent, url]
+        root.tagDetailProcess.command = root._curlGetArgs(15).concat([
+            "-H", "User-Agent: " + defaultUserAgent, url])
         root.tagDetailProcess.running = true
     }
 
@@ -680,6 +688,65 @@ QtObject {
             + "&prop=imageinfo&iiprop=url%7Csize%7Cmime&iiurlwidth=720"
     }
 
+    readonly property string motionBgsBase: "https://motionbgs.com"
+
+    function _buildMotionBgsUrl(tags, page) {
+        const words = (tags || []).map(tag => String(tag).trim()).filter(tag => tag.length > 0)
+        const pageNumber = Math.max(1, page || 1)
+        if (words.length === 1 && words[0].startsWith("tag:")) {
+            const tag = encodeURIComponent(words[0].slice(4).toLowerCase().replace(/\s+/g, "-"))
+            return root.motionBgsBase + "/tag:" + tag + "/" + (pageNumber > 1 ? pageNumber + "/" : "")
+        }
+        const query = words.join(" ")
+        if (query.length === 0)
+            return root.motionBgsBase + "/tag:anime/" + (pageNumber > 1 ? pageNumber + "/" : "")
+        return root.motionBgsBase + "/search?q=" + encodeURIComponent(query) + (pageNumber > 1 ? "&page=" + pageNumber : "")
+    }
+
+    function _parseMotionBgs(html) {
+        const images = []
+        const seen = {}
+        const anchor = /<a title="([^"]*)" href=\/([a-z0-9][a-z0-9-]*)>([\s\S]*?)<\/a>/g
+        let match = null
+        while ((match = anchor.exec(html || "")) !== null) {
+            const body = match[3]
+            const media = /\/i\/c\/\d+x\d+\/media\/(\d+)\/([^ >"]+?\.(?:jpg|jpeg|png))(?=[ >"])/.exec(body)
+            if (!media || seen[media[1]])
+                continue
+            seen[media[1]] = true
+            const id = media[1]
+            const file = media[2]
+            const stem = file.replace(/(\.\d+x\d+)?\.(jpg|jpeg|png)$/, "")
+            const named = /<span class=ttl>([^<]*)<\/span>/.exec(body)
+            const quality = (/<span class=frm>\s*([^<]*?)\s*<\/span>/.exec(body)?.[1] ?? "HD").toUpperCase()
+            const title = root._decodeHtmlEntities((named?.[1] ?? match[1].replace(/ live wallpaper$/i, "")).replace(/&#0?39;/g, "'").trim())
+            const is4k = quality === "4K"
+            const motion = root.motionBgsBase + "/media/" + id + "/" + stem + ".960x540.mp4"
+            images.push({
+                "id": id,
+                "slug": match[2],
+                "title": title,
+                "width": is4k ? 3840 : 1920,
+                "height": is4k ? 2160 : 1080,
+                "aspect_ratio": 16 / 9,
+                "tags": title,
+                "rating": "s",
+                "is_nsfw": false,
+                "md5": Qt.md5("motionbgs:" + id),
+                "preview_url": root.motionBgsBase + "/i/c/546x308/media/" + id + "/" + file,
+                "sample_url": motion,
+                "motion_url": motion,
+                "file_url": root.motionBgsBase + "/dl/hd/" + id + "/",
+                "file_url_4k": is4k ? root.motionBgsBase + "/dl/4k/" + id + "/" : "",
+                "file_ext": "mp4",
+                "quality": quality,
+                "is_video": true,
+                "source": root.motionBgsBase + "/" + match[2]
+            })
+        }
+        return images
+    }
+
     function makeRequest(tags, nsfw, limit, page, category, generation, providerId, fitProfile) {
         root.nowMs = Date.now()
         if (nsfw === undefined)
@@ -726,6 +793,8 @@ QtObject {
             ? root._buildSearchUrl(requestedTags, nsfw, providerLimit, page, requestedCategory, requestedFit)
             : requestedProvider === "commons"
                 ? root._buildCommonsUrl(requestedTags, providerLimit, page)
+            : requestedProvider === "motionbgs"
+                ? root._buildMotionBgsUrl(requestedTags, page)
                 : Booru.constructRequestUrlForProvider(requestedProvider,
                     requestedTags, nsfw, providerLimit, page || 1)
         _log("[Wallhaven] Making", requestedProvider, "request to", url)
@@ -749,8 +818,9 @@ QtObject {
         root._currentSearchGeneration = requestedGeneration
         runningRequests += 1
 
-        const command = ["/usr/bin/curl", "-s", "--max-time", "20", "-w", "\n__HTTP__%{http_code}"]
-        if (requestedProvider === "wallhaven")
+        const command = root._curlGetArgs(20)
+        command.push("-w", "\n__HTTP__%{http_code}")
+        if (requestedProvider === "wallhaven" || requestedProvider === "motionbgs")
             command.push("-H", "User-Agent: " + defaultUserAgent)
         else if (requestedProvider === "waifu.im")
             command.push("-H", "Accept-Version: v7")
@@ -762,13 +832,17 @@ QtObject {
     function _extractJsonPayload(text): string {
         const raw = String(text ?? "")
         const objStart = raw.indexOf("{")
-        const objEnd = raw.lastIndexOf("}")
-        if (objStart >= 0 && objEnd > objStart)
-            return raw.substring(objStart, objEnd + 1)
         const arrStart = raw.indexOf("[")
-        const arrEnd = raw.lastIndexOf("]")
-        if (arrStart >= 0 && arrEnd > arrStart)
-            return raw.substring(arrStart, arrEnd + 1)
+        if (arrStart >= 0 && (objStart < 0 || arrStart < objStart)) {
+            const arrEnd = raw.lastIndexOf("]")
+            if (arrEnd > arrStart)
+                return raw.substring(arrStart, arrEnd + 1)
+        }
+        if (objStart >= 0) {
+            const objEnd = raw.lastIndexOf("}")
+            if (objEnd > objStart)
+                return raw.substring(objStart, objEnd + 1)
+        }
         return raw.trim()
     }
 
@@ -817,11 +891,20 @@ QtObject {
                 httpStatus = parseInt(text.substring(altIdx + 8), 10) || 0
             }
         }
-        body = root._extractJsonPayload(body)
+        if (root._currentSearchProvider !== "motionbgs")
+            body = root._extractJsonPayload(body)
 
         if (httpStatus === 429) {
             root.rateLimitedUntilMs = Date.now() + 30000
             newResponse.message = Translation.tr("Wallhaven rate limit reached. Wait a moment and try again.")
+            root._appendResponse(newResponse)
+            root.responseFinished()
+            root._currentSearchResponse = null
+            root._processPendingSearch()
+            return
+        }
+        if (root._currentSearchProvider === "motionbgs" && httpStatus === 404 && (newResponse.page || 1) > 1) {
+            newResponse.message = Translation.tr("No more results for this search.")
             root._appendResponse(newResponse)
             root.responseFinished()
             root._currentSearchResponse = null
@@ -834,9 +917,10 @@ QtObject {
             if (httpStatus === 401) {
                 root.isProviderDown = false
                 newResponse.message = Translation.tr("Wallhaven rejected your API key. Check the key in settings and that your account allows NSFW.")
-            } else if (httpStatus === 521 || httpStatus === 502 || httpStatus === 503 || httpStatus === 504) {
+            } else if ([521, 502, 503, 504].includes(httpStatus)) {
                 root.isProviderDown = true
-                newResponse.message = Translation.tr("Wallhaven server is temporarily offline (Cloudflare HTTP %1). Switch to Wikimedia Commons or Konachan above.").arg(httpStatus)
+                newResponse.message = Translation.tr("%1 is temporarily unavailable (HTTP %2).")
+                    .arg("Wallhaven").arg(httpStatus)
             } else {
                 root.isProviderDown = false
                 newResponse.message = Translation.tr("Wallhaven request failed (HTTP %1).").arg(httpStatus)
@@ -923,6 +1007,8 @@ QtObject {
                         "source": info.descriptionurl ?? ("https://commons.wikimedia.org/wiki/" + encodeURIComponent(pageData?.title ?? ""))
                     }
                 })
+            } else if (root._currentSearchProvider === "motionbgs") {
+                images = root._parseMotionBgs(body)
             } else if (root._currentSearchProvider === "picsum") {
                 const payload = JSON.parse(body)
                 const fit = root._currentSearchFitProfile

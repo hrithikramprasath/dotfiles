@@ -11,6 +11,22 @@ import unittest
 SOURCE = Path(__file__).resolve().parents[1]
 
 class ConfigTests(unittest.TestCase):
+    def test_launcher_accepts_missing_optional_niri_environment(self):
+        launcher = (SOURCE/'dot_config/quickshell/inir/scripts/executable_inir').read_text()
+        functions = launcher[launcher.index('_niri_app_environment_file() {'):launcher.index('apply_gpu_policy() {')]
+        with tempfile.TemporaryDirectory() as tmp:
+            niri = Path(tmp)/'niri'; niri.mkdir()
+            config = niri/'config.kdl'
+            for text, expected in [('', ''), ('environment {\nQT_QPA_PLATFORM "wayland"\n}\n', 'wayland'),
+                                   ('environment {\nELECTRON_OZONE_PLATFORM_HINT "auto"\n}\n', '')]:
+                config.write_text(text)
+                result = subprocess.run(['bash', '-c', 'set -euo pipefail\n' + functions +
+                    '\napply_niri_app_environment\nprintf "reached:%s" "${QT_QPA_PLATFORM:-}"'],
+                    env={'PATH': '/usr/bin:/bin', 'HOME': tmp, 'XDG_CONFIG_HOME': tmp},
+                    capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, 'reached:' + expected)
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix='dotfiles-config-')
         self.addCleanup(self.tmp.cleanup)
@@ -66,6 +82,9 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual((destination/'.local').stat().st_mode & 0o777, 0o700)
         self.assertEqual((destination/'.config/easyeffects/db/equalizerrc').stat().st_mode & 0o777, 0o600)
         self.assertFalse((destination/'.local/.keep').exists())
+        launcher = destination/'.local/bin/inir'
+        self.assertTrue(os.access(launcher, os.X_OK))
+        self.assertEqual(launcher.read_bytes(), (destination/'.config/quickshell/inir/scripts/inir').read_bytes())
 
     def test_kde_wrapper_rejects_missing_variant_without_hanging(self):
         state = self.home/'.local/state/quickshell/user/generated'; state.mkdir(parents=True)
