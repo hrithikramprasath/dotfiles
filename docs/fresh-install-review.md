@@ -34,6 +34,8 @@ not part of this restore.
   databases; all 11 named AUR packages were found through the AUR RPC API.
 - Offline validator passed: syntax, QML/GLSL, documentation links, an isolated
   chezmoi apply/verify, Niri includes, private modes and deployment exclusions.
+- A new Python 3.12 virtual environment installed the pinned upstream
+  requirements successfully; color, image, GTK and media helper imports passed.
 - 22 regression tests passed. New tests exercise finalizer success/failure
   ordering, missing wallpaper, theme failure, manifest separation, incompatible
   runtime rejection and preservation of unrelated checkouts. Package managers,
