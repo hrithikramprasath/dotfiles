@@ -83,7 +83,7 @@ The complete bindings live in
 | `.chezmoiscripts/` | Package synchronization and missing-runtime bootstrap |
 | `.chezmoiexternal.toml` | Pinned font downloads and their licenses |
 | `inir-revision.txt` | Tested base for fresh iNiR installs |
-| `scripts/`, `tests/`, `.github/` | Offline validation and automation; never deployed into the home directory |
+| `scripts/`, `tests/`, `docs/examples/` | Offline validation and automation; never deployed into the home directory |
 | `docs/`, `assets/` | Guides, review notes and documentation images |
 
 ## Validation and compatibility
