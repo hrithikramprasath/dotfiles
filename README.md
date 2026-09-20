@@ -4,6 +4,8 @@
 
 # Arch / Niri dotfiles
 
+[![Validate dotfiles](https://github.com/hrithikramprasath/dotfiles/actions/workflows/validate.yml/badge.svg)](https://github.com/hrithikramprasath/dotfiles/actions/workflows/validate.yml)
+
 A personal Wayland desktop with scrolling workspaces, floating controls, and
 wallpaper-derived colors across the shell, terminal and GTK/Qt apps. Managed with
 [chezmoi](https://www.chezmoi.io/), built around [Niri](https://github.com/niri-wm/niri)
@@ -16,15 +18,56 @@ This is a personal restore recipe for an existing Arch Linux installation.
 Review the package lists and preferences before applying it to another machine.
 The repository contains selected iNiR source overlays, not a complete shell.
 
+## The desktop
+
+![Full desktop with a floating pill bar, large clock and Japanese typography over the wallpaper](assets/screenshots/desktop.png)
+
+A quiet workspace with a compact top bar, a large desktop clock and Japanese
+Typography widgets. The wallpaper palette carries through the translucent panels
+and controls. These are real **1600 × 900 captures of iNiR 2.31.0**; click an image
+to inspect it at full size.
+
+### Side panels
+
+| Left · widgets and shortcuts | Right · compact control center |
+| --- | --- |
+| ![Full desktop with the left sidebar showing focus timer, week, system rings, quick note and world clocks](assets/screenshots/left-panel.png) | ![Full desktop with the compact right sidebar showing volume, brightness, toggles, devices and capture tools](assets/screenshots/controls.png) |
+
+The left panel combines a focus timer, week strip, system usage rings, quick notes,
+app shortcuts and world clocks. Its tabs also lead to wallpaper browsing, tools
+and other services. The right panel groups brightness and audio sliders, quick
+toggles, device selection and screenshot, recording, OCR and color-picker actions.
+The compact layout keeps calendar and other tools in a vertical tab rail.
+
+### Floating tools
+
+| Pill · system monitor | EasyEffects · output equalizer |
+| --- | --- |
+| ![Top pill expanded into CPU, GPU, memory and network meters](assets/screenshots/pill.png) | ![Floating ten-band EasyEffects equalizer with preset buttons](assets/screenshots/equalizer.png) |
+
+The pill expands in place for a quick view of resource use. The optional equalizer
+exposes ten bands and common presets without opening the full EasyEffects window.
+Both sit above the desktop rather than becoming tiled app windows.
+
+### Settings in context
+
+![Full desktop with the iNiR Themes settings window and wallpaper-derived color swatches](assets/screenshots/settings.png)
+
+Settings bring colors, effects, widgets, panel layout and compositor preferences
+into one searchable interface. The existing close-ups below show the individual
+controls more clearly.
+
 ## A closer look
 
 | Wallpaper-derived palettes | Glass and rendering controls |
 | --- | --- |
 | ![iNiR Themes settings with the current palette and selectable color themes](assets/screenshots/themes.png) | ![iNiR Effects settings showing the blur backend and compositor blur control](assets/screenshots/effects.png) |
 
-Captured from the running configuration on **20 September 2026**. These are
-focused panel captures; account headers, app windows and desktop activity are
-outside the capture area. The opening vector is an illustration, not a screenshot.
+Captured on **20 September 2026**. The full desktop gallery uses an empty
+workspace, the compact right sidebar, hidden weather location and a hidden idle
+visualizer; personal preferences were restored afterward. Notifications, clipboard
+contents and private app windows are not shown. The two close-ups above are from
+the earlier 2.30 configuration. The opening vector is an illustration.
 
 ## The stack
 
@@ -78,12 +121,13 @@ The complete bindings live in
 | Path | Purpose |
 | --- | --- |
 | `dot_config/` | Managed application configuration under `~/.config` |
-| `dot_config/quickshell/inir/` | 31 selected runtime overlays: 29 QML files and two scripts |
+| `dot_config/quickshell/inir/` | 32 selected runtime overlays: 29 QML files and three scripts |
 | `dot_profile`, `dot_bash*`, `dot_z*` | Login environment and interactive shell setup |
+| `private_dot_local/bin/executable_inir.tmpl` | Deploys the patched launcher from the same source as the runtime copy |
 | `.chezmoiscripts/` | Package synchronization and missing-runtime bootstrap |
 | `.chezmoiexternal.toml` | Pinned font downloads and their licenses |
 | `inir-revision.txt` | Tested base for fresh iNiR installs |
-| `scripts/`, `tests/`, `docs/examples/` | Offline validation and automation; never deployed into the home directory |
+| `scripts/`, `tests/`, `.github/workflows/` | Offline validation and automation; never deployed into the home directory |
 | `docs/`, `assets/` | Guides, review notes and documentation images |
 
 ## Validation and compatibility
@@ -94,15 +138,16 @@ python3 -m unittest discover -s tests -v
 ```
 
 The validator checks configuration syntax, shader/QML parsing, local documentation
-links and a restore into a temporary home. The behavior suite has **14 tests**.
+links and a restore into a temporary home. The behavior suite has **15 tests**.
 Dependencies and runtime checks are in the [maintenance guide](docs/maintenance.md).
-An [optional CI template](docs/examples/validate.yml) runs these checks on pushes
-and pull requests without running the install hook.
+The [GitHub Actions workflow](.github/workflows/validate.yml) runs these checks on
+pushes to `main`, pull requests and manual dispatch, without running the install hook.
 
-The tested base remains **iNiR 2.30.0 / `dcba34ee`** with local overlays. Upstream
-2.31.0 was reviewed; its larger Settings and panel changes need a separate overlay
-migration. The current setup passes the documented checks, but hardware-specific
-features and every possible desktop interaction have not been verified.
+The tested base is **iNiR 2.31.0 / `9574fa42`**, with the custom overlays migrated
+and an optional-environment startup fix included in the launcher. See the
+[upgrade report](docs/upgrade-2.31.md) for validation, recovery and the remaining
+system-level SDDM migration. Hardware-specific features and every possible desktop
+interaction have not been verified.
 
 ## Credits and license
 

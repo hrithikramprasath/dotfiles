@@ -37,16 +37,17 @@ or importing them. `chezmoi add` is not a privacy filter.
 
 ## Updating iNiR
 
-Read the upstream changelog and compare changes to the 31 overlaid files before
+Read the upstream changelog and compare changes to the 32 overlaid files before
 installing a new runtime. Back up the current checkout, runtime and preferences.
 Port the overlays on a separate branch, check dynamic QML bindings in a session,
 and update the pin only after verifying the resulting combination. A clean
 parser result alone is not enough to prove runtime compatibility.
 
-The September 2026 review found upstream 2.31.0 adds iRiS and changes Settings,
-bar layout and service behavior. The tested 2.30.0 baseline remains pinned until
-that migration is validated. Doctor's checkout-divergence warning is expected
-for a customized branch; distinguish it from a failing service or invalid config.
+The tested baseline is now 2.31.0 (`9574fa42`) with migrated custom overlays.
+The launcher is managed in both the runtime and `~/.local/bin` from one source
+file; preserve its optional-environment startup fix during future merges.
+See the [upgrade report](upgrade-2.31.md) for checks and recovery details.
+Doctor reporting local commits ahead of upstream is expected for this branch.
 
 Niri already starts modern xwayland-satellite on demand. Do not add a second
 manual satellite startup process or force a fixed `DISPLAY` value.
@@ -68,13 +69,12 @@ font payloads. It checks Bash/Fish, JSON, TOML, XML/SVG, QML and GLSL syntax,
 rendered Niri includes, private file modes, the Kitty theme link and repository-only
 path exclusions. It does not execute Zsh or validate remote provider availability.
 
-The [optional CI template](examples/validate.yml) runs these checks in an Arch
-container with read-only repository permissions and a commit-pinned checkout
-action. To enable it, copy it to `.github/workflows/validate.yml` and push using
-a credential allowed to write workflows. The current GitHub CLI credential lacks
-the `workflow` scope, so this review ships the template without enabling it.
-Container preparation installs tools and requires network access; the checks do
-not install your desktop. The workflow itself has not been run on GitHub.
+The [active GitHub Actions workflow](../.github/workflows/validate.yml) runs these
+checks for pushes to `main`, pull requests and manual dispatch. It uses an Arch
+container, read-only repository permissions and a commit-pinned checkout action.
+Container preparation installs validation tools and requires network access;
+the checks do not install your desktop. The first hosted run passed on
+20 September 2026. The [example copy](examples/validate.yml) is retained for reuse.
 
 After changes to live behavior, also check `inir doctor`, service logs and the
 affected UI. Hardware, account-backed features and different display sizes need
