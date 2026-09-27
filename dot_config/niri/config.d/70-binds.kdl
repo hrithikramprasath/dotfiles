@@ -60,6 +60,10 @@ binds {
     Mod+Slash { spawn "inir" "cheatsheet" "toggle"; }
     Mod+Shift+W { spawn "inir" "panelFamily" "cycle"; }
 
+    // Sidebars (Right: Controls & Notifications, Left: Widgets & Tools).
+    Mod+N { spawn "inir" "sidebarRight" "toggle"; }
+    Mod+B { spawn "inir" "sidebarLeft" "toggle"; }
+
     // Session / power dialog.
     Mod+Shift+Q { spawn "inir" "session" "toggle"; }
 
