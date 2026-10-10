@@ -16,6 +16,7 @@ if status is-interactive
     alias clear "printf '\033[2J\033[3J\033[1;1H'" # fix: kitty doesn't clear scrollback properly
     alias celar "printf '\033[2J\033[3J\033[1;1H'"
     alias claer "printf '\033[2J\033[3J\033[1;1H'"
+    bind \cl 'clear; commandline -f repaint'
     if command -v eza &>/dev/null
         alias ls 'eza --icons=auto'
     end
